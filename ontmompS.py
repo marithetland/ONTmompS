@@ -122,10 +122,93 @@ def get_start_stop_positions(run, mompS2_df):
                 start = row[1][9]
                 end = row[1][8]
             key_blast.write(str(count) + '\t' + str(start) + '\t' + str(end) + '\n')
+        
+        key_blast.close()
             
     except:
         logging.exception("Unable to get start/stop positions in mompS2 dataframe.")
         sys.exit("Error in retrieving start/stop positions in mompS2 dataframe.")
+
+    return key_blast_file
+
+
+def samtools_index(run, assembly_file):
+
+    try:
+        run_command(['samtools faidx ', str(assembly_file)], shell=True)
+    except:
+        logging.exception("Unable to index assembly.")
+        sys.exit("Error in indexing assembly.")
+
+
+def samtools_extract(run, assembly_file, key_blast_file):
+
+    try:
+        key_blast_df = pd.DataFrame(pd.read_csv(key_blast_file, sep="\t"))
+        key_blast_df = key_blast_df.set_index('hit')
+
+        extracted_sequences_list = []
+        for index, row in enumerate(key_blast_df.iterrows()):
+            if key_blast_df.loc[index, 'start']:
+                start = key_blast_df.loc[index, 'start']
+                stop = key_blast_df.loc[index, 'stop']
+                extracted_sequence = str(index) + '_contig.fasta'
+                extracted_sequences_list.append(extracted_sequence)
+                run_command(['samtools faidx ', str(assembly_file), ' cluster_001_consensus:' + str(start) + '-' + str(stop), ' > ', extracted_sequence], shell=True)
+
+    except:
+        logging.exception("Unable to extract momps from assembly.")
+        sys.exit("Error in extracting momps from assembly.")
+
+    return extracted_sequences_list
+
+
+def blast_mompS(db_location, extracted_sequences_list):
+
+    momps_db_file = db_location + 'mompS_db.fa'
+
+    blast_momps_output_list = []
+    try:
+        for contig in extracted_sequences_list:
+            blast_output = str(contig).replace('.fasta', '_') + 'mompS_blast.tsv'
+            run_command(['blastn -query ', contig, ' -subject ', momps_db_file, ' -perc_identity 100 > ', blast_output], shell=True)
+            blast_momps_output_list.append(blast_output)
+
+    except:
+        logging.exception("Error in blastn mompS db against extracted contig.")
+        sys.exit("Error in blastn mompS db against extracted contig.")
+
+    return blast_momps_output_list
+
+
+def read_blast_momps_output(run, blast_momps_output_list):
+
+    key_blast_momps_file = run + 'key_momps_blast.txt'
+    key_blast_momps = open(key_blast_momps_file, 'w')
+    key_blast_momps.write('contig\tmomps\tlength\n')
+
+    try:
+        for blast_output in blast_momps_output_list:
+            with open(str(blast_output), 'r', encoding='utf-8') as output:
+                for line in output:
+                    if re.search('>', line):
+                        momps = line.replace('> ', '').replace("\n", "")
+                    if re.search('Length=', line):
+                        length = line.replace('Length=', '').replace("\n", "")
+                key_blast_momps.write(str(blast_output).replace('_mompS_blast.tsv', '') + '\t' + str(momps) + '\t' + str(length) + '\n')
+
+
+        key_blast_momps.close()
+
+    except:
+        logging.exception("Error in reading blast output.")
+        sys.exit("Error in reading momps blast output.")
+
+    return key_blast_momps_file
+
+
+##Left off here: need to run water alignment on output!
+
 
 def mompS_workflow(run, assembly_file, db_location, threads):
     check_version()
@@ -133,7 +216,11 @@ def mompS_workflow(run, assembly_file, db_location, threads):
     check_assembly(assembly_file)
     blast_mompS2_output = blast_mompS2_ref(run, assembly_file, db_location)
     mompS2_df = read_mompS2_output(blast_mompS2_output)
-    get_start_stop_positions(run, mompS2_df)
+    key_blast_file = get_start_stop_positions(run, mompS2_df)
+    samtools_index(run, assembly_file)
+    extracted_sequences_list = samtools_extract(run, assembly_file, key_blast_file)
+    blast_momps_output_list = blast_mompS(db_location, extracted_sequences_list)
+    key_blast_momps_file = read_blast_momps_output(run, blast_momps_output_list)
 
 # main function
 def main():
