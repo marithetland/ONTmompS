@@ -214,8 +214,8 @@ def run_water_alignment(run, db_location, extracted_sequences_list, key_blast_mo
     water_alignment_output_list = []
     try:
         for contig in extracted_sequences_list:
-            water_output = str(contig).replace('.fasta', '_') + '.water'
-            run_command(['water ', str(contig), ' ', str(primer_1116R), ' -gapopen 10 -gapextend 0.5 -outfile > ', water_output], shell=True)
+            water_output = str(contig).replace('.fasta', '') + '.water'
+            run_command(['water ', str(contig), ' ', str(primer_1116R), ' -gapopen 10 -gapextend 0.5 -outfile ', water_output], shell=True)
             water_alignment_output_list.append(water_output)
 
     except:
@@ -229,21 +229,26 @@ def read_water_alignment(run, water_alignment_output_list):
 
     key_water_alignment_file = run + 'key_water_alignment.txt'
     key_water_alignment = open(key_water_alignment_file, 'w')
-    key_water_alignment.write('contig\tmompS1\tmompS2\n')
+    key_water_alignment.write('contig\ttmompS2\n')
+
+    ## Ended here: need to make output contig 1 and 2 momps1 and momps2
 
     try:
+        momps2_search_list = []
+        momps1_search_list = []
         for water_output in water_alignment_output_list:
             with open(str(water_output), 'r', encoding='utf-8') as output:
-                for line in output:
-                    if re.search('Score: 125.0', line):
-                        momps2 = str(os.path.basename(water_output)).replace('.water', '')
-                        momps1 = '.'
+                file_contents = output.readlines()
+                for pos, line in enumerate(file_contents):
+                    if line.startswith("# Score: 125.0"):
+                        momps2_name = str(os.path.basename(water_output)).replace('.water', '')
+                        momps2_search_list.append(momps2_name)
                     else:
-                        momps2 = '.'
-                        momps1 = str(os.path.basename(water_output)).replace('.water', '')
-                key_water_alignment.write(str(water_output).replace('.water', '') + '\t' + str(momps2) + '\t' + str(momps1) + '\n')
-
-
+                        pass
+        
+        
+                key_water_alignment.write(str()) + '\t' + str() + '\t' + str(momps2) + '\n')
+        
         key_water_alignment.close()
 
     except:
