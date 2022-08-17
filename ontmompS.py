@@ -207,7 +207,48 @@ def read_blast_momps_output(run, blast_momps_output_list):
     return key_blast_momps_file
 
 
-##Left off here: need to run water alignment on output!
+def run_water_alignment(run, db_location, extracted_sequences_list, key_blast_momps_file):
+
+    primer_1116R = db_location + '1116R.fasta'
+
+    water_alignment_output_list = []
+    try:
+        for contig in extracted_sequences_list:
+            water_output = str(contig).replace('.fasta', '_') + '.water'
+            run_command(['water ', str(contig), ' ', str(primer_1116R), ' -gapopen 10 -gapextend 0.5 -outfile > ', water_output], shell=True)
+            water_alignment_output_list.append(water_output)
+
+    except:
+        logging.exception("Error running water pairwise alignment.")
+        sys.exit("Error running water pairwise alignment.")
+
+    return water_alignment_output_list
+
+
+def read_water_alignment(run, water_alignment_output_list):
+
+    key_water_alignment_file = run + 'key_water_alignment.txt'
+    key_water_alignment = open(key_water_alignment_file, 'w')
+    key_water_alignment.write('contig\tmompS1\tmompS2\n')
+
+    try:
+        for water_output in water_alignment_output_list:
+            with open(str(water_output), 'r', encoding='utf-8') as output:
+                for line in output:
+                    if re.search('Score: 125.0', line):
+                        momps2 = str(os.path.basename(water_output)).replace('.water', '')
+                        momps1 = '.'
+                    else:
+                        momps2 = '.'
+                        momps1 = str(os.path.basename(water_output)).replace('.water', '')
+                key_water_alignment.write(str(water_output).replace('.water', '') + '\t' + str(momps2) + '\t' + str(momps1) + '\n')
+
+
+        key_water_alignment.close()
+
+    except:
+        logging.exception("Error in reading blast output.")
+        sys.exit("Error in reading momps blast output.")
 
 
 def mompS_workflow(run, assembly_file, db_location, threads):
@@ -221,6 +262,8 @@ def mompS_workflow(run, assembly_file, db_location, threads):
     extracted_sequences_list = samtools_extract(run, assembly_file, key_blast_file)
     blast_momps_output_list = blast_mompS(db_location, extracted_sequences_list)
     key_blast_momps_file = read_blast_momps_output(run, blast_momps_output_list)
+    water_alignment_output_list = run_water_alignment(run, db_location, extracted_sequences_list, key_blast_momps_file)
+    read_water_alignment(run, water_alignment_output_list)
 
 # main function
 def main():
