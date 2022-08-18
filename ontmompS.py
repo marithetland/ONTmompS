@@ -99,14 +99,20 @@ def read_mompS2_output(blast_mompS2_output):
 
     try:
         mompS2_df = pd.DataFrame(pd.read_csv(blast_mompS2_output, sep="\t", names=["Query_ID", "Subject_ID", "Perc_match", "Length", "Num_mismatches", "Num_gaps", "Query_start", "Query_end", "Subject_start", "Subject_end", "E_value", "Bitscore"], engine='python'))
+        
+        extracted_sequences_list = []
+        for index, row in enumerate(mompS2_df.iterrows()):
+            contig = index
+            extracted_sequences_list.append(contig)
+
     except:
         logging.exception("Unable to read mompS2 blast output.")
         sys.exit("Error in reading output from mompS2 blast with assembly fasta file")
 
-    return mompS2_df
+    return mompS2_df, extracted_sequences_list
 
 
-def get_start_stop_positions(run, mompS2_df):
+def get_start_stop_positions(run, mompS2_df, extracted_sequences_list):
 
     #Write the results to a file
     key_blast_file = run + 'key_blast.txt'
@@ -115,14 +121,15 @@ def get_start_stop_positions(run, mompS2_df):
 
     try:
         for index, row in enumerate(mompS2_df.iterrows()):
-            contig = index
-            if row [1][8] < row[1][9]:
-                start = row[1][8]
-                end = row[1][9]
-            else:
-                start = row[1][9]
-                end = row[1][8]
-            key_blast.write(str(contig) + '\t' + str(start) + '\t' + str(end) + '\n')
+            for contig in extracted_sequences_list:
+                if index == contig:
+                    if row [1][8] < row[1][9]:
+                        start = row[1][8]
+                        end = row[1][9]
+                    else:
+                        start = row[1][9]
+                        end = row[1][8]
+                    key_blast.write(str(contig) + '\t' + str(start) + '\t' + str(end) + '\n')
         
         key_blast.close()
             
@@ -142,27 +149,24 @@ def samtools_index(assembly_file):
         sys.exit("Error in indexing assembly.")
 
 
-def samtools_extract(assembly_file, key_blast_file):
+def samtools_extract(assembly_file, key_blast_file, extracted_sequences_list):
 
     try:
         key_blast_df = pd.DataFrame(pd.read_csv(key_blast_file, sep="\t"))
         key_blast_df = key_blast_df.set_index('contig')
 
-        extracted_sequences_list = []
         for index, row in enumerate(key_blast_df.iterrows()):
-            if key_blast_df.loc[index, 'start']:
-                start = key_blast_df.loc[index, 'start']
-                stop = key_blast_df.loc[index, 'stop']
-                name = str(index)
-                extracted_sequences_list.append(name)
-                extracted_sequence = str(index) + '_contig.fasta'
-                run_command(['samtools faidx ', str(assembly_file), ' cluster_001_consensus:' + str(start) + '-' + str(stop), ' > ', extracted_sequence], shell=True)
+            for contig in extracted_sequences_list:
+                if index == contig:
+                    if key_blast_df.loc[index, 'start']:
+                        start = key_blast_df.loc[index, 'start']
+                        stop = key_blast_df.loc[index, 'stop']
+                        extracted_sequence = str(index) + '_contig.fasta'
+                        run_command(['samtools faidx ', str(assembly_file), ' cluster_001_consensus:' + str(start) + '-' + str(stop), ' > ', extracted_sequence], shell=True)
 
     except:
         logging.exception("Unable to extract momps from assembly.")
         sys.exit("Error in extracting momps from assembly.")
-
-    return extracted_sequences_list
 
 
 def blast_mompS(db_location, extracted_sequences_list):
@@ -171,9 +175,9 @@ def blast_mompS(db_location, extracted_sequences_list):
 
     try:
         for contig in extracted_sequences_list:
-            file = str(contig + '_contig.fasta')
-            blast_output = str(contig + '_contig_mompS_blast.tsv')
-            run_command(['blastn -query ', file, ' -subject ', momps_db_file, ' -perc_identity 100 > ', blast_output], shell=True)
+            file = str(contig) + '_contig.fasta'
+            blast_output = str(contig) + '_contig_mompS_blast.tsv'
+            run_command(['blastn -query ', file, ' -subject ', momps_db_file, ' -perc_identity 100 -max_target_seqs 1 -outfmt 6 > ', blast_output], shell=True)
 
     except:
         logging.exception("Error in blastn mompS db against extracted contig.")
@@ -188,14 +192,15 @@ def read_blast_momps_output(run, extracted_sequences_list):
 
     try:
         for item in extracted_sequences_list:
-            file = str(item + '_contig_mompS_blast.tsv')
-            with open(file, 'r', encoding='utf-8') as output:
-                for line in output:
-                    if re.search('>', line):
-                        momps = line.replace('> ', '').replace("\n", "")
-                    if re.search('Length=', line):
-                        length = line.replace('Length=', '').replace("\n", "")
-                key_blast_momps.write(str(item) + '\t' + str(momps) + '\t' + str(length) + '\n')
+            file = str(item) + '_contig_mompS_blast.tsv'
+            if os. stat(file).st_size == 0:
+                key_blast_momps.write(str(item) + '\t' + str('.') + '\t' + str('.') + '\n')
+                continue
+            df = pd.DataFrame(pd.read_csv(file, sep="\t", names=["Query_ID", "Subject_ID", "Perc_match", "Length", "Num_mismatches", "Num_gaps", "Query_start", "Query_end", "Subject_start", "Subject_end", "E_value", "Bitscore"], engine='python'))
+            for index, row in enumerate(df.iterrows()):
+                length = row[1][3]
+                momps = row[1][1]
+            key_blast_momps.write(str(item) + '\t' + str(momps) + '\t' + str(length) + '\n')
 
         key_blast_momps.close()
 
@@ -212,8 +217,8 @@ def run_water_alignment(db_location, extracted_sequences_list):
 
     try:
         for contig in extracted_sequences_list:
-            file = str(contig + '_contig.fasta')
-            water_output = str(contig + '_contig.water')
+            file = str(contig) + '_contig.fasta'
+            water_output = str(contig) + '_contig.water'
             run_command(['water ', file, ' ', primer_1116R, ' -gapopen 10 -gapextend 0.5 -outfile ', water_output], shell=True)
 
     except:
@@ -230,7 +235,7 @@ def read_water_alignment(run, extracted_sequences_list):
     try:
         momps2_contig_list = []
         for item in extracted_sequences_list:
-            file = str(item + '_contig.water')
+            file = str(item) + '_contig.water'
             with open(file, 'r', encoding='utf-8') as output:
                 file_contents = output.readlines()
                 for pos, line in enumerate(file_contents):
@@ -240,11 +245,11 @@ def read_water_alignment(run, extracted_sequences_list):
         
         if momps2_contig_list:
             for i in momps2_contig_list:
-                key_water_alignment.write(str(i + '\t' + 'mompS2' + '\n'))
+                key_water_alignment.write(str(i) + '\t' + 'mompS2' + '\n')
 
         mompS1_list = list(set(extracted_sequences_list).difference(momps2_contig_list))
         for i in mompS1_list:
-            key_water_alignment.write(str(i + '\t' + 'mompS1' + '\n'))
+            key_water_alignment.write(str(i) + '\t' + 'mompS1' + '\n')
         
         key_water_alignment.close()
 
@@ -275,10 +280,10 @@ def mompS_workflow(run, assembly_file, db_location, threads):
     check_db(db_location)
     check_assembly(assembly_file)
     blast_mompS2_output = blast_mompS2_ref(run, assembly_file, db_location)
-    mompS2_df = read_mompS2_output(blast_mompS2_output)
-    key_blast_file = get_start_stop_positions(run, mompS2_df)
+    mompS2_df, extracted_sequences_list = read_mompS2_output(blast_mompS2_output)
+    key_blast_file = get_start_stop_positions(run, mompS2_df, extracted_sequences_list)
     samtools_index(assembly_file)
-    extracted_sequences_list = samtools_extract(assembly_file, key_blast_file)
+    samtools_extract(assembly_file, key_blast_file, extracted_sequences_list)
     blast_mompS(db_location, extracted_sequences_list)
     key_blast_momps_file = read_blast_momps_output(run, extracted_sequences_list)
     run_water_alignment(db_location, extracted_sequences_list)
