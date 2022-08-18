@@ -247,9 +247,17 @@ def read_water_alignment(run, extracted_sequences_list):
             for i in momps2_contig_list:
                 key_water_alignment.write(str(i) + '\t' + 'mompS2' + '\n')
 
-        mompS1_list = list(set(extracted_sequences_list).difference(momps2_contig_list))
-        for i in mompS1_list:
-            key_water_alignment.write(str(i) + '\t' + 'mompS1' + '\n')
+            mompS1_list = list(set(extracted_sequences_list).difference(momps2_contig_list))
+            for i in mompS1_list:
+                key_water_alignment.write(str(i) + '\t' + 'mompS1' + '\n')
+
+        else:
+            print("#######NB#######")
+            print("mompS2 could not be separated from mompS1 by exact match to 1116R.")
+            print("Please check .water files to manually deduce.")
+            print("#######NB#######")
+            for i in extracted_sequences_list:
+                key_water_alignment.write(str(i) + '\t' + '.' + '\n')
         
         key_water_alignment.close()
 
