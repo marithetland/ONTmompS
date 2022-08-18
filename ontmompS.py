@@ -198,8 +198,8 @@ def read_blast_momps_output(run, extracted_sequences_list):
                 continue
             df = pd.DataFrame(pd.read_csv(file, sep="\t", names=["Query_ID", "Subject_ID", "Perc_match", "Length", "Num_mismatches", "Num_gaps", "Query_start", "Query_end", "Subject_start", "Subject_end", "E_value", "Bitscore"], engine='python'))
             for index, row in enumerate(df.iterrows()):
-                length = row[1][3]
-                momps = row[1][1]
+                length = df.loc[index, 'Length']
+                momps = df.loc[index, 'Subject_ID']
             key_blast_momps.write(str(item) + '\t' + str(momps) + '\t' + str(length) + '\n')
 
         key_blast_momps.close()
