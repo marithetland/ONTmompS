@@ -16,7 +16,7 @@ import logging
 def parse_args():
     #Version
     parser = ArgumentParser(description='Assign mompS from a long-read assembly')
-    parser.add_argument('-v','--version', action='version', version='%(prog)s ' + 'v.1.0.0')
+    parser.add_argument('-v','--version', action='version', version='%(prog)s ' + 'v.1.1.0')
 
     #Arguments
     parser.add_argument('-r', '--run_folder', type=str, required=True, help='Input directory.')
@@ -42,6 +42,8 @@ def run_command(command, **kwargs): #yekwahs
 
 
 def check_version():
+    """Check that programs are in PATH before running and record version"""
+    logging.info("Checking program versions.")
 
     try:
         run_command(['blastn -version >> program_versions.txt'], shell=True)
@@ -51,7 +53,9 @@ def check_version():
 
 
 def check_db(db_location):
-    
+    """Check if database location contains required files"""
+    logging.info("Checking database for required files.")
+
     try:
         if not os.path.isdir(db_location):
             raise
@@ -69,7 +73,9 @@ def check_db(db_location):
 
 
 def check_assembly(assembly_file):
-    
+    """Check that assembly is a file"""
+    logging.info("Checking assembly input.")
+
     try:
         if not os.path.isfile(assembly_file):
             raise
@@ -79,7 +85,9 @@ def check_assembly(assembly_file):
 
 
 def blast_mompS2_ref(run, assembly_file, db_location):
-    
+    """Run blast of mompS2 ref against assembly"""
+    logging.info("Running blast of mompS2 ref against assembly.")
+
     #Define mompS2_ref file (found in db)
     mompS2_ref = db_location + 'mompS2_ref.tfa'
 
@@ -96,6 +104,8 @@ def blast_mompS2_ref(run, assembly_file, db_location):
 
 
 def read_mompS2_output(blast_mompS2_output):
+    """Read output of blastn from mompS2 ref against assembly."""
+    logging.info("Reading output of blast from mompS2 ref against assembly.")
 
     try:
         mompS2_df = pd.DataFrame(pd.read_csv(blast_mompS2_output, sep="\t", names=["Query_ID", "Subject_ID", "Perc_match", "Length", "Num_mismatches", "Num_gaps", "Query_start", "Query_end", "Subject_start", "Subject_end", "E_value", "Bitscore"], engine='python'))
@@ -113,6 +123,8 @@ def read_mompS2_output(blast_mompS2_output):
 
 
 def get_start_stop_positions(run, mompS2_df, extracted_sequences_list):
+    """Get start and stop positions from blast output"""
+    logging.info("Getting start and stop positions of momps contigs in assembly file.")
 
     #Write the results to a file
     key_blast_file = run + 'key_blast.txt'
@@ -141,6 +153,8 @@ def get_start_stop_positions(run, mompS2_df, extracted_sequences_list):
 
 
 def samtools_index(assembly_file):
+    """Run samtools index"""
+    logging.info("Indexing assembly file.")
 
     try:
         run_command(['samtools faidx ', str(assembly_file)], shell=True)
@@ -150,11 +164,14 @@ def samtools_index(assembly_file):
 
 
 def samtools_extract(assembly_file, key_blast_file, extracted_sequences_list):
+    """Run samtools faidx"""
+    logging.info("Extracting momps contigs from assembly.")
 
     try:
         key_blast_df = pd.DataFrame(pd.read_csv(key_blast_file, sep="\t"))
         key_blast_df = key_blast_df.set_index('contig')
 
+        contig_start_stop_list = []
         for index, row in enumerate(key_blast_df.iterrows()):
             for contig in extracted_sequences_list:
                 if index == contig:
@@ -162,21 +179,31 @@ def samtools_extract(assembly_file, key_blast_file, extracted_sequences_list):
                         start = key_blast_df.loc[index, 'start']
                         stop = key_blast_df.loc[index, 'stop']
                         extracted_sequence = str(index) + '_contig.fasta'
+                        to_append = [index, start, stop]
+                        contig_start_stop_list.append(to_append)
                         run_command(['samtools faidx ', str(assembly_file), ' cluster_001_consensus:' + str(start) + '-' + str(stop), ' > ', extracted_sequence], shell=True)
 
     except:
         logging.exception("Unable to extract momps from assembly.")
         sys.exit("Error in extracting momps from assembly.")
 
+    return contig_start_stop_list
+
+
+def get_depth(run, contig_start_stop_list, extracted_sequences_list):
+    pass
+
 
 def blast_mompS(db_location, extracted_sequences_list):
+    """Run blastn of contig against momps database"""
+    logging.info("Running blastn of contig against momps database.")
 
     momps_db_file = db_location + 'mompS_db.fa'
 
     try:
-        for contig in extracted_sequences_list:
-            file = str(contig) + '_contig.fasta'
-            blast_output = str(contig) + '_contig_mompS_blast.tsv'
+        for item in extracted_sequences_list:
+            file = str(item) + '_contig.fasta'
+            blast_output = str(item) + '_contig_mompS_blast.tsv'
             run_command(['blastn -query ', file, ' -subject ', momps_db_file, ' -perc_identity 100 -max_target_seqs 1 -outfmt 6 > ', blast_output], shell=True)
 
     except:
@@ -185,22 +212,24 @@ def blast_mompS(db_location, extracted_sequences_list):
 
 
 def read_blast_momps_output(run, extracted_sequences_list):
+    """Read output files from blastn of contig fasta against momps database"""
+    logging.info("Reading blast output from contig against momps database.")
 
     key_blast_momps_file = run + 'key_momps_blast.txt'
     key_blast_momps = open(key_blast_momps_file, 'w')
     key_blast_momps.write('contig\tallele\tlength\n')
 
     try:
-        for item in extracted_sequences_list:
-            file = str(item) + '_contig_mompS_blast.tsv'
+        for contig in extracted_sequences_list:
+            file = str(contig) + '_contig_mompS_blast.tsv'
             if os. stat(file).st_size == 0:
-                key_blast_momps.write(str(item) + '\t' + str('.') + '\t' + str('.') + '\n')
+                key_blast_momps.write(str(contig) + '\t' + str('.') + '\t' + str('.') + '\n')
                 continue
             df = pd.DataFrame(pd.read_csv(file, sep="\t", names=["Query_ID", "Subject_ID", "Perc_match", "Length", "Num_mismatches", "Num_gaps", "Query_start", "Query_end", "Subject_start", "Subject_end", "E_value", "Bitscore"], engine='python'))
             for index, row in enumerate(df.iterrows()):
                 length = df.loc[index, 'Length']
                 momps = df.loc[index, 'Subject_ID']
-            key_blast_momps.write(str(item) + '\t' + str(momps) + '\t' + str(length) + '\n')
+            key_blast_momps.write(str(contig) + '\t' + str(momps) + '\t' + str(length) + '\n')
 
         key_blast_momps.close()
 
@@ -212,6 +241,8 @@ def read_blast_momps_output(run, extracted_sequences_list):
 
 
 def run_water_alignment(db_location, extracted_sequences_list):
+    """Run pairwise alignment"""
+    logging.info("Running water alignment on contig fasta files with 1116R primer.")
 
     primer_1116R = str(db_location + '1116R.fasta')
 
@@ -227,6 +258,8 @@ def run_water_alignment(db_location, extracted_sequences_list):
 
 
 def read_water_alignment(run, extracted_sequences_list):
+    """Read alignment files"""
+    logging.info("Reading alignment files.")
 
     key_water_alignment_file = run + 'key_water_alignment.txt'
     key_water_alignment = open(key_water_alignment_file, 'w')
@@ -234,13 +267,13 @@ def read_water_alignment(run, extracted_sequences_list):
 
     try:
         momps2_contig_list = []
-        for item in extracted_sequences_list:
-            file = str(item) + '_contig.water'
+        for contig in extracted_sequences_list:
+            file = str(contig) + '_contig.water'
             with open(file, 'r', encoding='utf-8') as output:
                 file_contents = output.readlines()
                 for pos, line in enumerate(file_contents):
                     if line.startswith("# Score: 125.0"):
-                        momps2_contig = item
+                        momps2_contig = contig
                         momps2_contig_list.append(momps2_contig)
         
         if momps2_contig_list:
@@ -291,7 +324,8 @@ def mompS_workflow(run, assembly_file, db_location, threads):
     mompS2_df, extracted_sequences_list = read_mompS2_output(blast_mompS2_output)
     key_blast_file = get_start_stop_positions(run, mompS2_df, extracted_sequences_list)
     samtools_index(assembly_file)
-    samtools_extract(assembly_file, key_blast_file, extracted_sequences_list)
+    contig_start_stop_list = samtools_extract(assembly_file, key_blast_file, extracted_sequences_list)
+    #get_depth(run, contig_start_stop_list, extracted_sequences_list)
     blast_mompS(db_location, extracted_sequences_list)
     key_blast_momps_file = read_blast_momps_output(run, extracted_sequences_list)
     run_water_alignment(db_location, extracted_sequences_list)
@@ -323,6 +357,7 @@ def main():
     #Display times
     total_time = time.time() - start_time
     time_mins = float(total_time) / 60
+    logging.info("ONTmomps completed.")
     print("ONTmomps finished in " + str(time_mins) + ' mins.')
 
 
