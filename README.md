@@ -34,6 +34,6 @@ mamba install -c bioconda emboss
 
 Clone the github repo and set up:
 ```
-cd ~/Programs/
+cd ~/Scripts/ONT/legionella/
 git clone https://github.com/markus-soma/ONTmomps.git
 ```
