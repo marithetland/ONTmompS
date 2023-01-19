@@ -415,3 +415,6 @@ def main():
 # call main function
 if __name__ == '__main__':
     main()
+
+
+#TODO: Add extraction of remaining SBT alleles.

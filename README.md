@@ -10,24 +10,19 @@
 ## Quick usage
 
 ```
-conda activate momps 
-python ONTmomps.py -a consensus.fasta
+python ONTmomps.py -a assembly.fasta
 ```
 
-## Background
-
+## Background 
+TBD.
 
 
 ## Installation
-Clone the repo:
+
+Clone the repo and install dependencies. We recommend installing in a conda environment:
 
 ```
 git clone https://github.com/marithetland/ONTmomps.git
-```
-
-Install dependencies. We recommend installing in a conda environment like so:
-
-```
 mamba create -n ontmomps_env -c bioconda pandas blast samtools emboss
 ```
 
@@ -36,38 +31,34 @@ mamba create -n ontmomps_env -c bioconda pandas blast samtools emboss
 Activate the conda environment: 
 
 ```
-usage: ONTmomps.py [-h] [-v] -r RUN_FOLDER -db DATABASE_FOLDER -a ASSEMBLY
-                   [--threads THREADS]
+usage: ONTmomps.py [-h] [-v] -a ASSEMBLIES [-o OUTDIR] [-d DATABASE_FOLDER]
+                   [-t THREADS] [-k {on,off}]
 
-Assign mompS2 allele from a long-read assembly for use in L. pneumophila SBT
+Assign mompS from long-read assemblies
 
 optional arguments:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
-  -r, --run_folder RUN_FOLDER
-                        Input directory.
-  -d, --database_folder DATABASE_FOLDER
-                        Provide a path to database location.
-  -a, --assembly ASSEMBLY
-                        Provide a consensus assembly in fasta format.
-  -t, --threads THREADS     Specify number of threads to use. Default: 4
+
+Input options (required):
+  -a ASSEMBLIES, --assemblies ASSEMBLIES
+                        Provide assemblies in fasta format.
+
+Output options:
+  -o OUTDIR, --outdir OUTDIR
+                        Output directory for all output files. Default:
+                        ./ONTmomps_output/
+
+Optional flags:
+  -d DATABASE_FOLDER, --database_folder DATABASE_FOLDER
+                        Provide a path to database location if different than
+                        that provided by this tool.
+  -t THREADS, --threads THREADS
+                        Specify number of threads to use. Default: 4
+  -k {on,off}, --keep_intermediate_files {on,off}
+                        Keep intermediate files. Default=off.
 ```
 
 ## Cite
 If you use this tool, please cite:
-Soma MA, Hetland MAK, Bjorheim AS, et al. Assign mompS2 allele from a long-read assembly for use in L. pneumophila SBT. https://github.com/marithetland/ONTmomps
-
-
-## SUS usage - fix this
-Go to the folder containing the long-read assembly:
-
-```
-conda activate ontmomps_env
-
-cd /path/to/assembly/fasta
-```
-
-Now you can run the script:
-```
-python ~/Scripts/ONT/legionella/ONTmomps/ONTmomps.py -r . -db ~/Scripts/ONT/legionella/ONTmomps -a consensus.fasta
-```
+Krøvel AV et al. Long-read sequencing as a solution to the challenge of calling the mompS-allele for use in L. pneumophila SBT with short-reads. https://github.com/marithetland/ONTmomps
