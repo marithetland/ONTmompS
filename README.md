@@ -1,74 +1,39 @@
 # ONTmomps
 
-**A tool for retrieving mompS2 alleles from closed long-read assemblies for Legionella pneumophila SBT assignment.**
+A script to retrieve mompS1 and mompS2 from a closed long-read assembly.
 
-* [Installation](#Installation)
-* [Full usage](#Full-usage)
-* [Cite](#Cite)
-
-
-## Quick usage
-
-```
-conda activate momps 
-python ONTmomps.py -a consensus.fasta
-```
-
-## Background
-
-
-
-## Installation
-Clone the repo:
-
-```
-git clone https://github.com/marithetland/ONTmomps.git
-```
-
-Install dependencies. We recommend installing in a conda environment like so:
-
-```
-mamba create -n momps python=3.9 
-conda activate momps
-mamba install -c bioconda pandas blast samtools emboss
-```
-
-
-## Full usage
+## Usage
 Activate the conda environment: 
 
 ```
-usage: ONTmomps.py [-h] [-v] -r RUN_FOLDER -db DATABASE_FOLDER -a ASSEMBLY
-                   [--threads THREADS]
-
-Assign mompS2 allele from a long-read assembly for use in L. pneumophila SBT
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -v, --version         show program's version number and exit
-  -r RUN_FOLDER, --run_folder RUN_FOLDER
-                        Input directory.
-  -db DATABASE_FOLDER, --database_folder DATABASE_FOLDER
-                        Provide a path to database location.
-  -a ASSEMBLY, --assembly ASSEMBLY
-                        Provide a consensus assembly in fasta format.
-  --threads THREADS     Specify number of threads to use. Default: 20
+conda activate momps
 ```
 
-## Cite
-If you use this tool, please cite:
-Soma MA, Hetland MAK, Bjorheim AS, et al. Assign mompS2 allele from a long-read assembly for use in L. pneumophila SBT. https://github.com/marithetland/ONTmomps
-
-
-## SUS usage - fix this
 Go to the folder containing the long-read assembly:
 
 ```
-conda activate momps
 cd /path/to/assembly/fasta
 ```
 
 Now you can run the script:
 ```
 python ~/Scripts/ONT/legionella/ONTmomps/ONTmomps.py -r . -db ~/Scripts/ONT/legionella/ONTmomps -a consensus.fasta
+```
+
+
+## Installation
+Install conda environment and install dependencies: 
+```
+mamba create -n momps python=3.9 
+conda activate momps
+mamba install -c anaconda pandas
+mamba install -c bioconda blast
+mamba install -c bioconda samtools
+mamba install -c bioconda emboss
+```
+
+Clone the github repo and set up:
+```
+cd ~/Scripts/ONT/legionella/
+git clone https://github.com/markus-soma/ONTmomps.git
 ```
