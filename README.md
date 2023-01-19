@@ -28,9 +28,7 @@ git clone https://github.com/marithetland/ONTmomps.git
 Install dependencies. We recommend installing in a conda environment like so:
 
 ```
-mamba create -n momps python=3.9 
-conda activate momps
-mamba install -c bioconda pandas blast samtools emboss
+mamba create -n ontmomps_env -c bioconda pandas blast samtools emboss
 ```
 
 
@@ -46,13 +44,13 @@ Assign mompS2 allele from a long-read assembly for use in L. pneumophila SBT
 optional arguments:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
-  -r RUN_FOLDER, --run_folder RUN_FOLDER
+  -r, --run_folder RUN_FOLDER
                         Input directory.
-  -db DATABASE_FOLDER, --database_folder DATABASE_FOLDER
+  -d, --database_folder DATABASE_FOLDER
                         Provide a path to database location.
-  -a ASSEMBLY, --assembly ASSEMBLY
+  -a, --assembly ASSEMBLY
                         Provide a consensus assembly in fasta format.
-  --threads THREADS     Specify number of threads to use. Default: 20
+  -t, --threads THREADS     Specify number of threads to use. Default: 4
 ```
 
 ## Cite
@@ -64,7 +62,8 @@ Soma MA, Hetland MAK, Bjorheim AS, et al. Assign mompS2 allele from a long-read 
 Go to the folder containing the long-read assembly:
 
 ```
-conda activate momps
+conda activate ontmomps_env
+
 cd /path/to/assembly/fasta
 ```
 
