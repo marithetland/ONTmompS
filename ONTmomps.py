@@ -80,9 +80,23 @@ def check_db(db_location):
             raise
         if not os.path.isfile(db_location + 'mompS2_ref.tfa'):
             raise
-        if not os.path.isfile(db_location + 'mompS_db.fa'):
-            raise
         if not os.path.isfile(db_location + '1116R.fasta'):
+            raise
+        if not os.path.isfile(db_location + 'mompS.fna'):
+            raise
+        if not os.path.isfile(db_location + 'asd.fna'):
+            raise
+        if not os.path.isfile(db_location + 'flaA.fna'):
+            raise
+        if not os.path.isfile(db_location + 'neuA.fna'):
+            raise
+        if not os.path.isfile(db_location + 'pilE.fna'):
+            raise
+        if not os.path.isfile(db_location + 'proA.fna'):
+            raise
+        if not os.path.isfile(db_location + 'mip.fna'):
+            raise
+        if not os.path.isfile(db_location + 'legionella.txt'):
             raise
     except:
         logging.exception("Location of database files not found.")
@@ -249,7 +263,7 @@ def blast_mompS(db_location, extracted_sequences_list, out):
     """Run blastn of contig against momps database"""
     logging.info("Running blastn of contig against momps database.")
 
-    momps_db_file = db_location + 'mompS_db.fa'
+    momps_db_file = db_location + 'mompS.fna'
 
     try:
         for item in extracted_sequences_list:
