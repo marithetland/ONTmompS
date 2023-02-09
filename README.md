@@ -2,9 +2,11 @@
 
 **A tool for retrieving mompS2 alleles from closed long-read assemblies for Legionella pneumophila SBT assignment.**
 
+* [Quick usage](#Quick-usage)
 * [Installation](#Installation)
 * [Full usage](#Full-usage)
-* [Cite](#Cite)
+* [Description](#Description)
+* [Update database] (#Update-database)
 
 
 ## Quick usage
@@ -13,8 +15,21 @@
 python ONTmomps.py -a assembly.fasta
 ```
 
-## Background 
-TBD.
+## Description
+This tool was built as an _ _in silico_ _ approach to identify the Sequence Type (ST) for Legionella pneumophila from long-read assembles. Specifically, it distinguished the mompS1 and mompS2 alleles from one another.
+* A complete ST is reported if allele matches are found to all seven SBT genes in the database (e.g. ST560).
+* If there are <3 inexact matches, the nearest matching ST with the number of locus variants (LVs) is reported, e.g. ST560-1LV..
+* For allele matches with <100% sequence identity, the nearest matching allele is noted with "*"
+* For incomplete coverage of an allele, the nearest matching allele is noted with "?"
+* For loci with no allele matches, sequence identity <90% or sequence coverage <80%, the allele number is reported as "-"
+
+Sequence-based typing (SBT) of _ _Legionella pneumophila_ _ is a valuable tool in epidemiological studies and outbreak investigations of Legionnaires’ disease. In the _ _L. pneumophila_ _ SBT scheme, _ _mompS2_ _ is one of seven genes that determine the ST. The _ _Legionella_ _ genome typically contains two copies of _ _mompS_ _. When they are non-identical, it can be challenging to determine the mompS2 allele, and subsequently the ST, from Illumina sequencing, due to the short read-length. With long-read sequencing from Oxford Nanopore Technologies (ONT) Kit12 chemistry and R10.4.1 flow cells, together with Trycycler v0.5.3 and Medaka v1.7.2 for long-read assembly and polishing, we were able to identify the mompS2 allele and subsequently the _ _L. pneumophila_ _ SBT. 
+
+
+This tools uses the same BLASTn logic as Kleborate (https://github.com/katholt/Kleborate/) to extract the alleles for the seven genes in the SBT scheme, except for _ _mompS_ _. For _ _mompS_ _ we use pairwise alignments ... 
+
+*Cite*
+If you use this tool, please cite: Krøvel AV and Hetland MAK et al. Long-read sequencing as a solution to the challenge of calling the mompS-allele for use in L. pneumophila SBT with short-reads. https://github.com/marithetland/ONTmomps
 
 
 ## Installation
@@ -23,7 +38,7 @@ Clone the repo and install dependencies. We recommend installing in a conda envi
 
 ```
 git clone https://github.com/marithetland/ONTmomps.git
-mamba create -n ontmomps_env -c bioconda pandas blast samtools emboss
+mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss parallel
 ```
 
 
@@ -31,34 +46,41 @@ mamba create -n ontmomps_env -c bioconda pandas blast samtools emboss
 Activate the conda environment: 
 
 ```
-usage: ONTmomps.py [-h] [-v] -a ASSEMBLIES [-o OUTDIR] [-d DATABASE_FOLDER]
-                   [-t THREADS] [-k {on,off}]
+usage: ONTmomps.py [-h] [-v] -a ASSEMBLIES [ASSEMBLIES ...]
+                   [-d DATABASE_FOLDER] [--store_mompS_alleles]
+                   [--store_novel_alleles] [--store_all_alleles] [--verbose]
+                   [--outfilename OUTFILENAME] [-outdir OUTDIR]
 
-Assign mompS from long-read assemblies
+In silico SBT of Legionella pneumophila from long-read or hybrid assemblies
 
 optional arguments:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
 
 Input options (required):
-  -a ASSEMBLIES, --assemblies ASSEMBLIES
-                        Provide assemblies in fasta format.
-
-Output options:
-  -o OUTDIR, --outdir OUTDIR
-                        Output directory for all output files. Default:
-                        ./ONTmomps_output/
+  -a ASSEMBLIES [ASSEMBLIES ...], --assemblies ASSEMBLIES [ASSEMBLIES ...]
+                        FASTA file(s) for assemblies (*.fasta)
 
 Optional flags:
   -d DATABASE_FOLDER, --database_folder DATABASE_FOLDER
                         Provide a path to database location if different than
                         that provided by this tool.
-  -t THREADS, --threads THREADS
-                        Specify number of threads to use. Default: 4
-  -k {on,off}, --keep_intermediate_files {on,off}
-                        Keep intermediate files. Default=off.
+  --store_mompS_alleles
+                        Print mompS alleles to files named
+                        {assembly}_{allele}.fna.
+  --store_novel_alleles
+                        Print novel alleles to files named
+                        {assembly}_{allele}.fna.
+  --store_all_alleles   Print all alleles (7 genes in SBT scheme + mompS1) to
+                        files named {assembly}_{allele}.fna.
+  --verbose             Keep intermediate files for debugging.
+
+Output options:
+  --outfilename OUTFILENAME
+                        Output filename for STs. Default: ./LpST_ONTmompS.tsv
+  -outdir OUTDIR        Output directory to store novel alleles in. Default is
+                        current working directory
 ```
 
-## Cite
-If you use this tool, please cite:
-Krøvel AV et al. Long-read sequencing as a solution to the challenge of calling the mompS-allele for use in L. pneumophila SBT with short-reads. https://github.com/marithetland/ONTmomps
+## Update database
+TBD. Currently from Legsta. Should be updated with UKHSA db for more updated.
