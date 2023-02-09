@@ -82,4 +82,4 @@ Output options:
 ```
 
 ## Update database
-The database in this repository is the same version as that in https://github.com/tseemann/legsta (https://github.com/tseemann/legsta/tree/master/db). Please contact UKHSA if you want to obtain a more recent database version. When you have your desired database, you can either specify the path in the command with flag `--db /path/to/db` or simply replace the db directory in this directory (that way you avoid having to specify db each time you run it).
+The database in this repository is the same version as that in https://github.com/tseemann/legsta (https://github.com/tseemann/legsta/tree/master/db). Please contact the Legionella-SBT team at UKHSA if you want to obtain a more recent database version. When you have your desired database, you need to make sure the files follow the same format as those in the db for this repo. You can then either specify the path to your new db in the command with flag `--db /path/to/db` or simply replace the relevant files (7 * allele.fna and lpneuophila.txt) in this repo's db directory (that way you avoid having to specify db each time you run it).
