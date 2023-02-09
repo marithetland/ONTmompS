@@ -1,4 +1,4 @@
-# ONTmomps
+# ONTmompS
 
 **A tool for retrieving mompS2 alleles from closed long-read assemblies for Legionella pneumophila SBT assignment.**
 
@@ -6,30 +6,27 @@
 * [Installation](#Installation)
 * [Full usage](#Full-usage)
 * [Description](#Description)
-* [Update database] (#Update-database)
-
+* [Update database](#Update-database)
 
 ## Quick usage
 
 ```
-python ONTmomps.py -a assembly.fasta
+python ONTmompS.py -a assembly.fasta
 ```
 
 ## Description
-This tool was built as an _ _in silico_ _ approach to identify the Sequence Type (ST) for Legionella pneumophila from long-read assembles. Specifically, it distinguished the mompS1 and mompS2 alleles from one another.
+This tool was built as an _in silico_ approach to identify the Sequence Type (ST) for Legionella pneumophila from long-read assembles. Specifically, it distinguishes the mompS1 and mompS2 alleles from one another.
 * A complete ST is reported if allele matches are found to all seven SBT genes in the database (e.g. ST560).
-* If there are <3 inexact matches, the nearest matching ST with the number of locus variants (LVs) is reported, e.g. ST560-1LV..
+* If there are < 3 inexact matches, the nearest matching ST with the number of locus variants (LVs) is reported, e.g. ST560-1LV.
 * For allele matches with <100% sequence identity, the nearest matching allele is noted with "*"
 * For incomplete coverage of an allele, the nearest matching allele is noted with "?"
 * For loci with no allele matches, sequence identity <90% or sequence coverage <80%, the allele number is reported as "-"
 
-Sequence-based typing (SBT) of _ _Legionella pneumophila_ _ is a valuable tool in epidemiological studies and outbreak investigations of Legionnaires’ disease. In the _ _L. pneumophila_ _ SBT scheme, _ _mompS2_ _ is one of seven genes that determine the ST. The _ _Legionella_ _ genome typically contains two copies of _ _mompS_ _. When they are non-identical, it can be challenging to determine the mompS2 allele, and subsequently the ST, from Illumina sequencing, due to the short read-length. With long-read sequencing from Oxford Nanopore Technologies (ONT) Kit12 chemistry and R10.4.1 flow cells, together with Trycycler v0.5.3 and Medaka v1.7.2 for long-read assembly and polishing, we were able to identify the mompS2 allele and subsequently the _ _L. pneumophila_ _ SBT. 
+Sequence-based typing (SBT) of _Legionella pneumophila_ is a valuable tool in epidemiological studies and outbreak investigations of Legionnaires’ disease. In the _L. pneumophila_ SBT scheme, _mompS2_ is one of seven genes that determine the ST. The _Legionella_ genome typically contains two copies of _mompS_. When they are non-identical, it can be challenging to determine the mompS2 allele, and subsequently the ST, from Illumina sequencing, due to the short read-length. With long-read sequencing from Oxford Nanopore Technologies (ONT) Kit12 chemistry and R10.4.1 flow cells, together with Trycycler v0.5.3 and Medaka v1.7.2 for long-read assembly and polishing, we were able to identify the mompS2 allele and subsequently the _L. pneumophila_ SBT. 
 
+**Cite**
 
-This tools uses the same BLASTn logic as Kleborate (https://github.com/katholt/Kleborate/) to extract the alleles for the seven genes in the SBT scheme, except for _ _mompS_ _. For _ _mompS_ _ we use pairwise alignments ... 
-
-*Cite*
-If you use this tool, please cite: Krøvel AV and Hetland MAK et al. Long-read sequencing as a solution to the challenge of calling the mompS-allele for use in L. pneumophila SBT with short-reads. https://github.com/marithetland/ONTmomps
+If you use this tool, please cite: Krøvel AV and Hetland MAK et al. Long-read sequencing as a solution to the challenge of calling the mompS-allele for use in L. pneumophila SBT with short-reads. https://github.com/marithetland/ONTmompS
 
 
 ## Installation
@@ -37,7 +34,7 @@ If you use this tool, please cite: Krøvel AV and Hetland MAK et al. Long-read s
 Clone the repo and install dependencies. We recommend installing in a conda environment:
 
 ```
-git clone https://github.com/marithetland/ONTmomps.git
+git clone https://github.com/marithetland/ONTmompS.git
 mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss parallel
 ```
 
@@ -46,7 +43,7 @@ mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss para
 Activate the conda environment: 
 
 ```
-usage: ONTmomps.py [-h] [-v] -a ASSEMBLIES [ASSEMBLIES ...]
+usage: ONTmompS.py [-h] [-v] -a ASSEMBLIES [ASSEMBLIES ...]
                    [-d DATABASE_FOLDER] [--store_mompS_alleles]
                    [--store_novel_alleles] [--store_all_alleles] [--verbose]
                    [--outfilename OUTFILENAME] [-outdir OUTDIR]
