@@ -82,4 +82,14 @@ Output options:
 ```
 
 ## Update database
-The database in this repository is the same version as that in https://github.com/tseemann/legsta (https://github.com/tseemann/legsta/tree/master/db). Please contact the Legionella-SBT team at UKHSA if you want to obtain a more recent database version. When you have your desired database, you need to make sure the files follow the same format as those in the db for this repo. You can then either specify the path to your new db in the command with flag `--db /path/to/db` or simply replace the relevant files (7 * allele.fna and lpneuophila.txt) in this repo's db directory (that way you avoid having to specify db each time you run it).
+The database in this repository is the same version as that in https://github.com/tseemann/legsta/tree/master/db. Please contact the Legionella-SBT team at UKHSA if you want to obtain a more recent database version. When you have your desired database, you need to make sure the files follow the same format as those in the db for this repo (see below). If the sequences are provided in csv format with 'sequence,number', you can run the commands below to make the database compatible with ONTmompS:
+
+```
+unzip sbt_schema_10_11_2022_12_59.zip ; cd sbt_schema_10_11_2022_12_59 
+cat sbt.csv | sed 's/st/ST/g' | sed 's/,/\t/g' >> lpneumophila.txt ; rm sbt.csv 
+cat neuAh.csv >> neuA.csv ; rm neuAh.csv 
+for f in $(ls *.csv | sed 's/.csv//g') ; do paste <(cat ${f}.csv | cut -d"," -f2 | sed "s/^/>${f}_/g" ) <(cat ${f}.csv | cut -d"," -f1) |  sed 's/\t/\n/g' | grep -v "number\|sequence" >> ${f}.fna ; done ; rm *.csv
+
+```
+
+Once you have converted the database files, you can either 1) specify the path to your new db with the flag `--db /path/to/db` or 2) move your new db files to this repo's db directory (e.g. `mv *.fna lpneumophila.txt /path/to/ONTmompS/db/`). 

@@ -37,7 +37,7 @@ def parse_args():
     #Arguments 
     input_args.add_argument('-a', '--assemblies', nargs='+', type=str, required=True, help='FASTA file(s) for assemblies (*.fasta)')
 
-    optional_args.add_argument('-d', '--database_folder', type=str, required=False, help='Provide a path to database location if different than that provided by this tool.')
+    optional_args.add_argument('--db', type=str, required=False, help='Provide a path to database location if different than that provided by this tool.')
 
     optional_args.add_argument('--store_mompS_alleles', action='store_true', required=False, help='Print mompS alleles to files named {assembly}_{allele}.fna.')
 
@@ -72,8 +72,8 @@ def run_command(command, **kwargs):
         raise CommandError({"Error:": message})
 
 def check_dbdir(args):
-    if args.database_folder:
-        db_location = args.database_folder
+    if args.db:
+        db_location = args.db
         if db_location[-1] != '/':
             db_location = db_location + '/'
     else:
@@ -89,8 +89,6 @@ def check_db(db_location):
 
     #Assign variable names to files
     sts = db_location + 'lpneumophila.txt'
-    mompS2_ref = db_location + 'mompS2_ref.fna'
-    primer_1116R = db_location + '1116R_rev.fasta'
     flaA_db_file = db_location + 'flaA.fna'
     pilE_db_file = db_location + 'pilE.fna'
     asd_db_file = db_location + 'asd.fna'
@@ -98,6 +96,10 @@ def check_db(db_location):
     mompS_db_file = db_location + 'mompS.fna'
     proA_db_file = db_location + 'proA.fna'
     neuA_db_file = db_location + 'neuA.fna'
+
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+    mompS2_ref=(base_dir+'/db/mompS2_ref.fna')
+    primer_1116R=(base_dir+'/db/1116R_rev.fasta')
 
     #Check that the files exist
     try:
