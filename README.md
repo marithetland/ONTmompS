@@ -6,6 +6,8 @@
 * [Installation](#Installation)
 * [Full usage](#Full-usage)
 * [Description](#Description)
+* [Output](#Output)
+
 * [Update database](#Update-database)
 
 ## Quick usage
@@ -15,12 +17,7 @@ python ONTmompS.py -a assembly.fasta
 ```
 
 ## Description
-This tool was built as an _in silico_ approach to identify the Sequence Type (ST) for Legionella pneumophila from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns ST.
-* A complete ST is reported if allele matches are found to all seven SBT genes in the database (e.g. ST560).
-* If there are < 3 inexact matches, the nearest matching ST with the number of locus variants (LVs) is reported, e.g. ST560-1LV.
-* For allele matches with <100% sequence identity, the nearest matching allele is noted with "*"
-* For incomplete coverage of an allele, the nearest matching allele is noted with "?"
-* For loci with no allele matches, sequence identity <90% or sequence coverage <80%, the allele number is reported as "-"
+This tool was built as an _in silico_ approach to identify the Sequence Type (ST) for Legionella pneumophila from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns ST. We recommend using long-read or hybrid assemblies that have circular chromosomes when running this tool. It will not work with short-read assemblies.
 
 Sequence-based typing (SBT) of _Legionella pneumophila_ is a valuable tool in epidemiological studies and outbreak investigations of Legionnaires’ disease. In the _L. pneumophila_ SBT scheme, _mompS2_ is one of seven genes that determine the ST. The _Legionella_ genome typically contains two copies of _mompS_ (designated _mompS1_ and _mompS2_). When they are non-identical, it can be challenging to determine the _mompS2_ allele, and subsequently the ST, from Illumina sequencing, due to the short read-length. With long-read sequencing from Oxford Nanopore Technologies (ONT) Kit12/Kit10 chemistry and R10.4.1/R9.4 flow cells, together with Trycycler v0.5.3 and Medaka v1.7.2 for long-read assembly and polishing, we were able to identify the _mompS2_ allele and subsequently the _L. pneumophila_ SBT, using this tool. 
 
@@ -28,6 +25,16 @@ Sequence-based typing (SBT) of _Legionella pneumophila_ is a valuable tool in ep
 
 If you use this tool, please cite: Krøvel AV and Hetland MAK et al. Long-read sequencing as a solution to the challenge of calling _mompS_ for _L. pneumophila_ SBT with short-reads. https://github.com/marithetland/ONTmompS
 
+## Output
+With default settings, two output files are created: `LpST_ONTmompS.tsv` reports the ST and SBT alleles. `mompS_alleles_ONTmompS.tsv` reports the mompS alleles. The ST and alleles will be annotated if there are mismatching or missing alleles:
+
+* A complete ST is reported if allele matches are found to all seven SBT genes in the database (e.g. ST560).
+* If there are < 3 inexact matches, the nearest matching ST with the number of locus variants (LVs) is reported, e.g. ST560-1LV.
+* For allele matches with <100% sequence identity, the nearest matching allele is noted with "*"
+* For incomplete coverage of an allele, the nearest matching allele is noted with "?"
+* For loci with no allele matches, sequence identity <90% or sequence coverage <80%, the allele number is reported as "-"
+
+It is possible to store the allele sequences to files, using flags: `store_novel_alleles` to store only novel allele sequences, `store_mompS_alleles` to store the mompS allele sequences, or `store_all_alleles` to store all allele sequences. The files will by default be placed in a folder named `ONTmompS_allele_sequences`.
 
 ## Installation
 
