@@ -7,7 +7,6 @@
 * [Full usage](#Full-usage)
 * [Description](#Description)
 * [Output](#Output)
-
 * [Update database](#Update-database)
 
 ## Quick usage
@@ -100,4 +99,4 @@ cat neuAh.csv >> neuA.csv ; rm neuAh.csv
 for f in $(ls *.csv | sed 's/.csv//g') ; do paste <(cat ${f}.csv | cut -d"," -f2 | sed "s/^/>${f}_/g" ) <(cat ${f}.csv | cut -d"," -f1) |  sed 's/\t/\n/g' | grep -v "number\|sequence" >> ${f}.fna ; done ; rm *.csv
 ```
 
-Once you have converted the database files, you can either 1) specify the path to your new db with the flag `--db /path/to/db` or 2) move your new db files to this repo's db directory (e.g. `mv *.fna lpneumophila.txt /path/to/ONTmompS/db/`). 
+Once you have converted the database files, you can either 1) specify the path to your new db with the flag `--db /path/to/db` or 2) move your new db files to this repo's db directory (i.e. `mv *.fna lpneumophila.txt /path/to/ONTmompS/db/`). 
