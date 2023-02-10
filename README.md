@@ -16,6 +16,15 @@
 python ONTmompS.py -a assembly.fasta
 ```
 
+## Installation
+
+Clone the repo and install dependencies. We recommend installing in a conda (mamba) environment:
+
+```
+git clone https://github.com/marithetland/ONTmompS.git
+mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss parallel
+```
+
 ## Description
 This tool was built as an _in silico_ approach to identify the Sequence Type (ST) for Legionella pneumophila from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns ST. We recommend using long-read or hybrid assemblies that have circular chromosomes when running this tool. It will not work with short-read assemblies.
 
@@ -36,14 +45,7 @@ With default settings, two output files are created: `LpST_ONTmompS.tsv` reports
 
 It is possible to store the allele sequences to files, using flags: `store_novel_alleles` to store only novel allele sequences, `store_mompS_alleles` to store the mompS allele sequences, or `store_all_alleles` to store all allele sequences. The files will by default be placed in a folder named `ONTmompS_allele_sequences`.
 
-## Installation
 
-Clone the repo and install dependencies. We recommend installing in a conda (mamba) environment:
-
-```
-git clone https://github.com/marithetland/ONTmompS.git
-mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss parallel
-```
 
 
 ## Full usage
@@ -96,7 +98,6 @@ unzip sbt_schema_10_11_2022_12_59.zip ; cd sbt_schema_10_11_2022_12_59
 cat sbt.csv | sed 's/st/ST/g' | sed 's/,/\t/g' >> lpneumophila.txt ; rm sbt.csv 
 cat neuAh.csv >> neuA.csv ; rm neuAh.csv 
 for f in $(ls *.csv | sed 's/.csv//g') ; do paste <(cat ${f}.csv | cut -d"," -f2 | sed "s/^/>${f}_/g" ) <(cat ${f}.csv | cut -d"," -f1) |  sed 's/\t/\n/g' | grep -v "number\|sequence" >> ${f}.fna ; done ; rm *.csv
-
 ```
 
 Once you have converted the database files, you can either 1) specify the path to your new db with the flag `--db /path/to/db` or 2) move your new db files to this repo's db directory (e.g. `mv *.fna lpneumophila.txt /path/to/ONTmompS/db/`). 
