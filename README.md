@@ -21,7 +21,7 @@ Clone the repo and install dependencies. We recommend installing in a conda (mam
 
 ```
 git clone https://github.com/marithetland/ONTmompS.git
-mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss
+mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss biopython
 ```
 
 ## Description 
@@ -102,3 +102,4 @@ for f in $(ls *.csv | sed 's/.csv//g') ; do paste <(cat ${f}.csv | cut -d"," -f2
 ```
 
 Once you have converted the database files, you can either 1) specify the path to your new db with the flag `--db /path/to/db` or 2) move your new db files to this repo's db directory (i.e. `mv *.fna lpneumophila.txt /path/to/ONTmompS/db/`). 
+
