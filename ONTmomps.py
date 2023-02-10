@@ -363,6 +363,9 @@ def get_SBT(assembly_file, mompS2_ref,mompS_db_file, primer_1116R, asd_db_file, 
 
     append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE_allele_annotated, asd_allele_annotated, mip_allele_annotated, mompS2_allele_annotated, proA_allele_annotated, neuA_allele_annotated, mompS1_allele_annotated, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile)
 
+    #TODO: Temp while testing, remove this line
+    run_command(['rm ',mompS1_sequence,' ',mompS2_sequence ], shell=True) #TODO: Add start and stop positions to the fasta 
+
     #store_sequences(args, mompS2_sequence, mompS1_sequence, mompS2_allele_annotated, mompS2_allele      assembly_name, ST_annotated, flaA_allele_annotated, pilE_allele_annotated, asd_allele_annotated, mip_allele_annotated, mompS2_allele_annotated, proA_allele_annotated, neuA_allele_annotated, mompS1_allele_annotated, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile)
 
 def store_sequences(args):
@@ -535,7 +538,7 @@ def get_SBT_allele_blastn_hits(query, subject, assembly_name, out): #TODO: Must 
             annotated_allele = locus_number[1]
 
             #TODO: Check if this is the correct place to be running this... maybe further up? Must specify when to write these
-            write_allele_sequences_to_files(locus, annotated_allele, assembly_name, assembly_strand, assembly_start, assembly_end,assembly_seq,out)
+            #write_allele_sequences_to_files(locus, annotated_allele, assembly_name, assembly_strand, assembly_start, assembly_end,assembly_seq,out)
 
         return annotated_allele, allele_number, allele, assembly_seq
 
@@ -545,17 +548,17 @@ def get_SBT_allele_blastn_hits(query, subject, assembly_name, out): #TODO: Must 
 
 def write_allele_sequences_to_files(locus, annotated_allele, assembly_name, assembly_strand, assembly_start, assembly_end,assembly_seq,out):
             #Write fasta sequences to output (except mompS1 and mompS2)
-            if not locus == "mompS" or not locus == "mompS1" or notlocus == "mompS2":
-                #TODO: Check if there are ?  * or - in the annotation - if so, check args etc.
-                fasta_header = ">" + "Locus:" + locus +  " Allele number:" + annotated_allele + " Assembly:" + assembly_name + " Strand:" + assembly_strand + " Pos:" + str(assembly_start) + "-" + str(assembly_end) #TODO: Decide what to include in the header
-                fasta_sequence = assembly_seq
-                filename = out + locus + "_" + assembly_name + ".fasta"
-                f=open(filename,"w+") # file name and mode
-                f.writelines(fasta_header)
-                f.writelines("\n")
-                f.writelines(fasta_sequence)
-                # to add data you only add String data so you want to type cast variable  
-                f.writelines("\n")
+            #if not locus == "mompS" or not locus == "mompS1" or notlocus == "mompS2":
+            #TODO: Check if there are ?  * or - in the annotation - if so, check args etc.
+            fasta_header = ">" + "Locus:" + locus +  " Allele number:" + annotated_allele + " Assembly:" + assembly_name + " Strand:" + assembly_strand + " Pos:" + str(assembly_start) + "-" + str(assembly_end) #TODO: Decide what to include in the header
+            fasta_sequence = assembly_seq
+            filename = out + locus + "_" + assembly_name + ".fasta"
+            f=open(filename,"w+") # file name and mode
+            f.writelines(fasta_header)
+            f.writelines("\n")
+            f.writelines(fasta_sequence)
+            # to add data you only add String data so you want to type cast variable  
+            f.writelines("\n")
 
 
 def cull_redundant_hits(blast_hits): #Adapted from Kleborate  
@@ -699,8 +702,13 @@ def run_water_alignment(df, primer_1116R,seq):
     return mompS_copy
    
 
+def get_output_headers():
+    ST_alleles = {"Strain":[],"ST":[],"flaA":[],"pilE":[],"asd":[],"mip":[],"mompS":[],"proA":[],"neuA":[]} 
+    mompS_alleles = {"Strain":[],"mompS1":[],"mompS2":[]} 
 
+    print("Strain\tST\tflaA\tpilE\tasd\tmip\tmompS\tproA\tneuA\t\t\tmompS1 (Not used in the SBT scheme)")
 
+    return ST_alleles, mompS_alleles
 
 
 ####################################################################################################################################
@@ -725,22 +733,14 @@ def main():
     logging.basicConfig(filename=out+"ONTmompS.log", format='%(asctime)s %(message)s', filemode='w', level=logging.DEBUG) 
     logging.info("Started ONTmompS.")
 
-    #Run SBT + mompS on all assemblies in loop. #TODO: Set this up so it prints to file for each iteration, so that the run may be canceled but you keep the results so far. 
-    ST_alleles = {"Strain":[],"ST":[],"flaA":[],"pilE":[],"asd":[],"mip":[],"mompS":[],"proA":[],"neuA":[]} 
-    mompS_alleles = {"Strain":[],"mompS1":[],"mompS2":[]} 
+    #Run SBT + mompS on all assemblies in loop. #TODO: Set this up so it prints to file for each iteration, so that the run may be canceled but you keep the results so far . 
+    ST_alleles, mompS_alleles = get_output_headers()
 
-    print("Strain\tST\tflaA\tpilE\tasd\tmip\tmompS\tproA\tneuA\t\t\tmompS1 (Not in the SBT scheme)")
+
 
     for assembly_input in sequence_list:
-        print(assembly_input)
         assembly_file, assembly_name = check_assembly(assembly_input,out)
         get_SBT(assembly_file, mompS2_ref,mompS_db_file, primer_1116R, asd_db_file, flaA_db_file, mip_db_file, neuA_db_file, pilE_db_file, proA_db_file, out, assembly_name,sts, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile,args)
-
-    print("STs are stored in: " + ST_outfile)
-    print("mompS copy and allele numbers are stored in: " + mompS_outfile)
-    print("Allele sequences are stored in folder: " + out)
-
-    logging.info("STs written to: " + ST_outfile) #TODO: only if storing files.
 
     #Display times
     total_time = time.time() - start_time
