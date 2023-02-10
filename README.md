@@ -21,16 +21,16 @@ Clone the repo and install dependencies. We recommend installing in a conda (mam
 
 ```
 git clone https://github.com/marithetland/ONTmompS.git
-mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss parallel
+mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss
 ```
 
-## Description
-This tool was built as an _in silico_ approach to identify the Sequence Type (ST) for Legionella pneumophila from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns ST. We recommend using long-read or hybrid assemblies that have circular chromosomes when running this tool. It will not work with short-read assemblies.
+## Description 
+This tool was built as an _in silico_ approach to identify the Sequence Type (ST) for _Legionella pneumophila_ from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns allele numbers and ST. We recommend using long-read or hybrid assemblies that have circular chromosomes when running this tool. It will not work with short-read assemblies.
 
-Sequence-based typing (SBT) of _Legionella pneumophila_ is a valuable tool in epidemiological studies and outbreak investigations of Legionnaires’ disease. In the _L. pneumophila_ SBT scheme, _mompS2_ is one of seven genes that determine the ST. The _Legionella_ genome typically contains two copies of _mompS_ (designated _mompS1_ and _mompS2_). When they are non-identical, it can be challenging to determine the _mompS2_ allele, and subsequently the ST, from Illumina sequencing, due to the short read-length. With long-read sequencing from Oxford Nanopore Technologies (ONT) Kit12/Kit10 chemistry and R10.4.1/R9.4 flow cells, together with Trycycler v0.5.3 and Medaka v1.7.2 for long-read assembly and polishing, we were able to identify the _mompS2_ allele and subsequently the _L. pneumophila_ SBT, using this tool. 
+**Background**
+Sequence-based typing (SBT) of _Legionella pneumophila_ is a valuable tool in epidemiological studies and outbreak investigations of Legionnaires’ disease. In the _L. pneumophila_ SBT scheme, _mompS2_ is one of seven genes that determine the ST. The _Legionella_ genome typically contains two copies of _mompS_ (designated _mompS1_ and _mompS2_). When they are non-identical, it can be challenging to determine the _mompS2_ allele, and subsequently the ST, from Illumina sequencing, due to the short read-length. Using long-read sequencing from Oxford Nanopore Technologies (ONT) Kit12/Kit10 chemistry and R10.4.1/R9.4 flow cells, together with Trycycler v0.5.3 and Medaka v1.7.2 for long-read assembly and polishing, we were able to identify the _mompS2_ allele and subsequently the _L. pneumophila_ SBT, when using this tool. 
 
 **Cite**
-
 If you use this tool, please cite: Krøvel AV and Hetland MAK et al. Long-read sequencing as a solution to the challenge of calling _mompS_ for _L. pneumophila_ SBT with short-reads. https://github.com/marithetland/ONTmompS
 
 ## Output
