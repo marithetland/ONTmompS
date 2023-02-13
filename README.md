@@ -44,7 +44,7 @@ With default settings, two output files are created: `LpST_ONTmompS.tsv` reports
 * For incomplete coverage of an allele, the nearest matching allele is noted with "?"
 * For loci with no allele matches, sequence identity <90% or sequence coverage <80%, the allele number is reported as "-"
 
-It is possible to store the allele sequences to files, using flags: `store_novel_alleles` to store only novel allele sequences, `store_mompS_alleles` to store the mompS allele sequences, or `store_all_alleles` to store all allele sequences. The files will by default be placed in a folder named `ONTmompS_allele_sequences`.
+It is possible to store the allele sequences to files, using the flags: `store_novel_alleles` to store only novel allele sequences, `store_mompS_alleles` to store the mompS allele sequences, or `store_all_alleles` to store all allele sequences. The files will by default be placed in a folder named `ONTmompS_allele_sequences`.
 
 
 
@@ -102,4 +102,3 @@ for f in $(ls *.csv | sed 's/.csv//g') ; do paste <(cat ${f}.csv | cut -d"," -f2
 ```
 
 Once you have converted the database files, you can either 1) specify the path to your new db with the flag `--db /path/to/db` or 2) move your new db files to this repo's db directory (i.e. `mv *.fna lpneumophila.txt /path/to/ONTmompS/db/`). 
-
