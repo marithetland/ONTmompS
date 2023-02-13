@@ -46,7 +46,7 @@ def parse_args():
 
     output_args.add_argument('--ST_outfile', type=str, required=False, default='./LpST_ONTmompS.tsv', help='Output filename for STs. Default: ./LpST_ONTmompS.tsv')
     output_args.add_argument('--mompS_outfile', type=str, required=False, default='./mompS_alleles_ONTmompS.tsv', help='Output filename for mompS copy allele numbers. Default: ./mompS_alleles_ONTmompS.tsv')
-    output_args.add_argument('-outdir', type=str, default='./ONTmompS_allele_sequences', help='Output directory to store novel alleles in. Default is current working directory')
+    output_args.add_argument('-o','--outdir', type=str, default='./ONTmompS_allele_sequences', help='Output directory to store novel alleles in. Default is current working directory')
 
     return parser.parse_args()
 
@@ -810,3 +810,4 @@ def main():
 # call main function
 if __name__ == '__main__':
     main()
+
