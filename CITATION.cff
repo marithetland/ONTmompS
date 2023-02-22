@@ -8,8 +8,8 @@ message: >-
   metadata from this file.
 type: software
 authors:
-  - given-names: Hetland
-    family-names: Marit Andrea Klokkhammer
+  - given-names: Marit Andrea Klokkhammer
+    family-names: Hetland
     email: marit.hetland@outlook.com
     orcid: 'https://orcid.org/0000-0003-4247-8304'
     affiliation: >-
@@ -17,8 +17,8 @@ authors:
       University Hospital, Stavanger, Norway; Department of
       Biological Sciences, Faculty of Mathematics and
       Natural Sciences, University of Bergen, Bergen, Norway
-  - given-names: Soma
-    family-names: Markus André
+  - given-names: Markue André
+    family-names: Soma
     affiliation: >-
       Department of Medical Microbiology, Stavanger
       University Hospital, Stavanger, Norway
