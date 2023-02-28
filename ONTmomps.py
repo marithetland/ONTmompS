@@ -25,9 +25,9 @@ import logging
 
 # Define functions
 def parse_args():
-    #Version
+    #Version 
     parser = ArgumentParser(description='In silico SBT of Legionella pneumophila from long-read or hybrid assemblies')
-    parser.add_argument('-v','--version', action='version', version='%(prog)s ' + 'v1.2.0')
+    parser.add_argument('-v','--version', action='version', version='%(prog)s ' + 'v2.0.0')
 
     #Argsgroups
     input_args = parser.add_argument_group('Input options (required)')
@@ -42,7 +42,7 @@ def parse_args():
     optional_args.add_argument('--store_novel_alleles', action='store_true', required=False, help='Print novel alleles to files named {assembly}_{allele}.fna.')
     optional_args.add_argument('--store_all_alleles', action='store_true', required=False, help='Print all alleles (7 genes in SBT scheme + mompS1) to files named {assembly}_{allele}.fna. ')
     optional_args.add_argument('--verbose', action='store_true', required=False,  help='Log more details and keep intermediate files for debugging.') #Set this to store the water alignment.
-    optional_args.add_argument('--log', type=str, required=False, help='Write logging to specified file name instead of stdout') #Set this to store the water alignment.
+    optional_args.add_argument('-l','--log', type=str, required=False, help='Write logging to specified file name instead of stdout') #Set this to store the water alignment.
 
     output_args.add_argument('--ST_outfile', type=str, required=False, default='./LpST_ONTmompS.tsv', help='Output filename for STs. Default: ./LpST_ONTmompS.tsv')
     output_args.add_argument('--mompS_outfile', type=str, required=False, default='./mompS_alleles_ONTmompS.tsv', help='Output filename for mompS copy allele numbers. Default: ./mompS_alleles_ONTmompS.tsv')
@@ -54,7 +54,22 @@ def parse_args():
 ### Defs for checking verions, arguments, databases
 #####################################################################
 
+def set_up_logging(args):
+    """ Set up logging """
+    if args.log:
+        logfile = args.log #Log to provided file path
+    else:
+        logfile = None #Log to terminal output
+    # Set up log to stdout
+    logging.basicConfig(
+        filename=logfile,
+        level=logging.DEBUG, 
+        filemode='w',
+        format='%(asctime)s %(message)s',
+        datefmt='%m-%d-%Y %H:%M:%S')
+
 def run_command(command, **kwargs):
+    """ Set up to run shell commands """
     command_str = ''.join(command)
     #logging.info('Running shell command: {}'.format(command_str))
     try:
@@ -67,6 +82,7 @@ def run_command(command, **kwargs):
         raise CommandError({"Error:": message})
 
 def check_dbdir(args):
+    """ Check that db dir exists and return the path """
     if args.db:
         db_location = args.db
         if db_location[-1] != '/':
@@ -79,7 +95,7 @@ def check_dbdir(args):
 
 
 def check_db(db_location):
-    """Check that database location exists and contains required files, and save to variable"""
+    """ Check that database location exists and contains required files, and save to variable """
     #Assign variable names to files
     sts = db_location + 'lpneumophila.txt'
     flaA_db_file = db_location + 'flaA.fna'
@@ -127,8 +143,8 @@ def check_db(db_location):
 
     return sts, mompS2_ref, primer_1116R, flaA_db_file, pilE_db_file, asd_db_file, mip_db_file, mompS_db_file, proA_db_file, neuA_db_file
 
-def load_st_db(sts): #Uses same logic as Kleborate
-    """Load the lpneumophila.txt ST database"""
+def load_st_db(sts):
+    """ Load the lpneumophila.txt ST database, using same logic as Kleborate """
     alleles_to_st = {}
     header = []
     st_names = []
@@ -146,6 +162,7 @@ def load_st_db(sts): #Uses same logic as Kleborate
     return header, st_names, alleles_to_st
 
 def check_outputs(args):
+    """ Check that specified outputs/paths are OK """
     #Outfile for STs 
     if args.ST_outfile:
         ST_outfile = args.ST_outfile
@@ -161,7 +178,7 @@ def check_outputs(args):
     logging.info("Output STs will be written to: " + os.path.abspath(ST_outfile))
     logging.info("Output mompS copy allele numbers will be written to: " + os.path.abspath(mompS_outfile))
 
-    #Outdir for temp and storing
+    #Outdir for storing allele sequences or verbose files
     if args.store_mompS_alleles or args.store_novel_alleles or args.store_all_alleles or args.verbose:
         if args.outdir:
             out = args.outdir
@@ -183,35 +200,40 @@ def check_outputs(args):
         if args.verbose:
             store="Verbose mode is on. The 987 bp mompS-region sequences and pairwise alignment files"
 
-        logging.info(store + " will be written to files in: " + os.path.abspath(out) + "/") #TODO: add arg for keeping extra files and make temp_dir instead of this specific name, but give option for specific name.
+        logging.info(store + " will be written to files in: " + os.path.abspath(out) + "/") 
     else:
-         out = "./" #Write any output to current working directory
+         out = "./" #Write any output (ST and mompS alleles) to current working directory
 
     return out, ST_outfile, mompS_outfile
 
-
-def check_assemblies(args):
-    #Set up a list of all input files:
-    fasta=args.assemblies
-    #Create list of input sequences 
-    genomes = []
-    sequence_list = []
-    for sequence in fasta:
-        if os.path.isfile(sequence) and isfasta(sequence) and sequence not in sequence_list: #If file exists and is a fasta sequence and is not already in list
-            sequence_list.append(sequence)
-        else: 
-            #print("Provided file " + sequence +" does not exist or is not in FASTA format.") 
-            logging.exception("Provided file " + sequence +" does not exist or is not in FASTA format. Please check your input. Removing from downstream analysis.")
-
-    return sequence_list
-
 def isfasta(file):
+    """ Check that input file is in fasta format """
     with open(file, "r") as handle:
         fasta = SeqIO.parse(handle, "fasta")
         return any(fasta)  # False when `fasta` is empty, i.e. wasn't a FASTA file
 
+def check_assemblies(args):
+    """ Check input and return list to iterate over """
+    #Set up a list of all input files:
+    fasta=args.assemblies
+    #Create list of input sequences   
+    genomes = []
+    sequence_list = []
+
+    for sequence in fasta:
+        if os.path.isfile(sequence) and isfasta(sequence) and sequence not in sequence_list: #If file exists and is a fasta sequence and is not already in list
+            sequence_list.append(sequence)
+        else: 
+            logging.info("Provided file " + sequence +" does not exist or is not in FASTA format. Please check your input. Removing from downstream analysis.")
+
+    if sequence_list != []:
+        return sequence_list
+    else:
+        sys.exit("No FASTA files were provided. Please check that your input/paths are correct.")
+
+
 def check_assembly(assembly_file,out):
-    """Check that assembly is a file"""
+    """ Check that assembly is a file and return path and name """
     try:
         assembly_file=os.path.abspath(assembly_file)
         base_name=os.path.basename(assembly_file)
@@ -227,9 +249,8 @@ def check_assembly(assembly_file,out):
 ### Defs for BLASTn and parsing BLASTn output 
 #####################################################################
 def run_blastn(subject, query):
-    """Run blast of mompS2 ref against assembly"""
-    #Run BLASTn to find mompS hits. TODO: Store positions, strand and sequence.
-    #Uses the same BLASTn logic as Kleborate's MLSTblast.py
+    """ Run blastn """
+    #Run BLASTn to find allele hits. Uses the same BLASTn logic as Kleborate's MLSTblast.py. TODO: Store positions, strand and sequence.
     try:
         blastn_command = NcbiblastnCommandline(cmd='blastn',
                                   task='blastn',
@@ -241,20 +262,17 @@ def run_blastn(subject, query):
                                   max_target_seqs='10000',
                                   perc_identity='90',
                                   outfmt='"6 sacc pident slen qlen length score gaps mismatch bitscore sseq qseq sstrand sstart send qacc qstart qend qframe"')
-        blastn_output = blastn_command()[0].strip()
-        #TODO: Should change to?: stdout, stderr = blastn_command()
+        blastn_output = blastn_command()[0].strip() #TODO: Should change to: stdout, stderr = blastn_command(). Print stderr if errors?
 
     except:
-        logging.exception("Error in blast assembly file to mompS2_ref.")
-        sys.exit("Error in blast assembly file to mompS2_ref in db.")
+        logging.exception("Error in blast of assembly file to mompS2_ref db.")
 
     return blastn_output
 
 def read_blastn_output(blastn_output):
-    #Read blastn output as a pandas df
+    """ Read BLASTn output as a pandas dataframe """
     try:
-        headers = ['sacc','pident','slen','qlen','length','score','gaps','mismatch','bitscore','sseq','qseq','sstrand','sstart','send','qacc','qstart','qend','qframe'] #Some not used - might be removed.
-
+        headers = ['sacc','pident','slen','qlen','length','score','gaps','mismatch','bitscore','sseq','qseq','sstrand','sstart','send','qacc','qstart','qend','qframe'] #Some not used - may be removed
         rows = [line.split() for line in blastn_output.splitlines()]    
         df = pd.DataFrame(rows, columns=headers)
 
@@ -264,12 +282,12 @@ def read_blastn_output(blastn_output):
 
     except:
         logging.exception("Error in reading BLASTn df.")
-        sys.exit("Error in reading BLASTn df.")
+        sys.exit("Error in reading BLASTn df.") #TODO: remove sys.exit to continue loop, but write to error?
 
     return df
 
 def get_sseq_start_stop_positions(row,strand,seq,start,end):
-    """Get the sequence, start and stop positions from blast output. Reverse complement if on minus strand."""
+    """ Get the sequence, start and stop positions from blast output. Reverse complement if on minus strand """
     #Reverse complement if on minus strand. Store sequence and start + end positions 
     if row[strand] == 'minus':
         my_seq = Seq(row[seq])
@@ -281,18 +299,18 @@ def get_sseq_start_stop_positions(row,strand,seq,start,end):
         sstart=row[start]
         send=row[end]
 
-    return sseq, sstart, send #TODO: could add strand to this if we want to report it?
+    return sseq, sstart, send #TODO: could add strand to this if we want to report it
 
 #####################################################################
 ### Defs for identifying mompS and SBT 
 #####################################################################
 
 def get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, out, assembly_name, args):
+    """ Identify the mompS1 and mompS2 sequences """
     try:
         blastn_output = run_blastn(assembly_file, mompS2_ref)
         df = read_blastn_output(blastn_output)
 
-        #TODO:If the sequence is on the reverse strand we should flip it when storing? Check for minus 
         mompS_blastn_hits = []
         mompS2_copy = []
         mompS2_sequence = []
@@ -311,27 +329,17 @@ def get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, 
 
         #Assign mompS copies and store sequence to respective files:
         for hit in mompS_blastn_hits:
-            #if hit[0] > 0.5:
-
+            #TODO: if hit[0] > 0.5:
             if hit[0]=='mompS2':
                 mompS2_copy=hit[0]
                 mompS2_sequence=hit[1]
                 run_command(['echo ">',mompS2_copy,'__',assembly_name,'" >>  ',out,mompS2_copy,'_seq_with_flank_', assembly_name,'.fasta ; echo ', str(mompS2_sequence),' >>  ',out,mompS2_copy,'_seq_with_flank_', assembly_name,'.fasta'  ], shell=True) #TODO: Add start and stop positions to the fasta header.
-                #TODO: if verbose option, print these to screen.
             elif hit[0]=='mompS1':
                 mompS1_copy=hit[0]
                 mompS1_sequence=hit[1]
                 run_command(['echo ">',mompS1_copy,'__',assembly_name,'" >>  ',out,mompS1_copy,'_seq_with_flank_', assembly_name,'.fasta ; echo ', str(mompS1_sequence),' >>  ',out,mompS1_copy,'_seq_with_flank_', assembly_name,'.fasta'  ], shell=True) #TODO: Add allele number, strand, start and stop positions to the fasta header. See print for other alleles.
 
-        #print(num_mompS_hits)
-
-
-        #Check how many mompS hits there are
-        #if num_mompS_hits == 2:
-        #    print("desired number of mompS")
-        #if num_mompS_hits != 2:
-        #    print("undesired number of mompS") 
-        #If any of the mompS copies are not found, store them as missing "-"
+        #If any of the mompS copies are not found, store them as missing "-" 
         mompS_not_identified = []
         if not mompS2_copy:
             mompS2_copy="-"
@@ -342,9 +350,7 @@ def get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, 
             to_print = (assembly_name + ": mompS1 not found")
             mompS_not_identified.append(to_print)
 
-
-
-            #TODOCheck that there is no more than two hits - the mompS hits get overwritten if there are more than one.!!!!! and change header of mompS being stored to get the positions and strand. aand check that strand is corrcet.
+            #TODO: Check that there is no more than two hits - the mompS hits get overwritten if there are more than one! and change header of mompS being stored to get the positions and strand. and check that strand is corrcet.
 
     except:
         logging.exception("Error: Did not find any hits to mompS in file: " + assembly_name)
@@ -354,12 +360,12 @@ def get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, 
 
 
 def get_SBT(assembly_file, mompS2_ref,mompS_db_file, primer_1116R, asd_db_file, flaA_db_file, mip_db_file, neuA_db_file, pilE_db_file, proA_db_file, out, assembly_name, sts, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile,args):
-    """Read all alleles and assign ST """
-    mompS2_copy, mompS2_sequence, mompS1_copy, mompS1_sequence, mompS_not_identified = get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, out, assembly_name, args) #TODO: maybe add mompS start and stop back to what is returned
+    """ Read all locus alleles and assign ST """
+    mompS2_copy, mompS2_sequence, mompS1_copy, mompS1_sequence, mompS_not_identified = get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, out, assembly_name, args) #TODO: maybe add mompS start and stop positions + strand back to what is returned
 
-    #Deal with mompS first
+    #Get allele numbers for the mompS copies first
     #Read mompS sequences for each copy:    
-    mompS2_sequence = (out + 'mompS2_seq_with_flank_' + assembly_name + '.fasta') #write same header as for rest?
+    mompS2_sequence = (out + 'mompS2_seq_with_flank_' + assembly_name + '.fasta')
     mompS1_sequence = (out + 'mompS1_seq_with_flank_' + assembly_name + '.fasta')
 
     if os.path.isfile(mompS2_sequence):
@@ -377,40 +383,117 @@ def get_SBT(assembly_file, mompS2_ref,mompS_db_file, primer_1116R, asd_db_file, 
         mompS1_allele = "-"
         mompS1_allele_annotated = "-"
 
-
-    #mompS 987 bp sequences: If verbose mode is not on, remove the mompS and TODO water alignment sequences.  
+    #mompS 987 bp sequences: If verbose mode is not on, remove the stored 987 bp mompS-region sequences and TODO water alignment sequences.  
     if args.verbose:
-        logging.info("Verbose mode is on. Will print the mompS sequences of all input assemblies to files in: " + out)
+        logging.info("Verbose mode is on. Will print the 987 bp mompS sequences of all input assemblies to files in: " + out)
 
-    #Then the reamining 6 alleles
-    #For each of the 7 SBT genes (+ mompS1), get the allele number and check if it is *, ? or -:
+    #For each of the remaining 6 SBT genes, get the allele number and check if it is *, ? or - (done for mompS1 and mompS2 above):
     flaA_allele_annotated, flaA_allele_number, flaA_allele, flaA_sequence = get_SBT_allele_blastn_hits(assembly_file, flaA_db_file,assembly_name,out,args)
     pilE_allele_annotated, pilE_allele_number, pilE_allele, pilE_sequence = get_SBT_allele_blastn_hits(assembly_file, pilE_db_file,assembly_name,out,args)
     asd_allele_annotated, asd_allele_number, asd_allele, asd_sequence  = get_SBT_allele_blastn_hits(assembly_file, asd_db_file,assembly_name,out,args)
     mip_allele_annotated, mip_allele_number, mip_allele, mip_sequence = get_SBT_allele_blastn_hits(assembly_file, mip_db_file,assembly_name,out,args)
     proA_allele_annotated, proA_allele_number, proA_allele, proA_sequence = get_SBT_allele_blastn_hits(assembly_file, proA_db_file,assembly_name,out,args)
-    pilE_allele_annotated, pilE_allele_number, pilE_allele, pilE_sequence = get_SBT_allele_blastn_hits(assembly_file, pilE_db_file,assembly_name,out,args)
     neuA_allele_annotated, neuA_allele_number, neuA_allele, neuA_sequence = get_SBT_allele_blastn_hits(assembly_file, neuA_db_file, assembly_name,out,args)
 
-
-
-
-    #Create a combination with all of the ST and allele numbers
+    #Create a combination with all of the ST and allele numbers. #TODO: see if we can combine these dictionaries
     allele_combinations = {"flaA":flaA_allele,"pilE":pilE_allele,"asd":asd_allele,"mip":mip_allele,"mompS":mompS2_allele,"proA":proA_allele,"neuA":neuA_allele}
-    annotated_allele_combinations = {"flaA":flaA_allele_annotated,"pilE":pilE_allele_annotated,"asd":asd_allele_annotated,"mip":mip_allele_annotated,"mompS":mompS2_allele_annotated,"proA":proA_allele_annotated,"neuA":neuA_allele_annotated}
-    #TODO: see if we can combine these dictionaries
+    annotated_allele_combinations = {"flaA":flaA_allele_annotated,"pilE":pilE_allele_annotated,"asd":asd_allele_annotated,"mip":mip_allele_annotated,"mompS":mompS2_allele_annotated,"proA":proA_allele_annotated,"neuA":neuA_allele_annotated}    
 
     #Assign ST
     ST_annotated = get_closest_ST(sts, allele_combinations, annotated_allele_combinations)
-
+    #Append ST to output files and print to stdout
     append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE_allele_annotated, asd_allele_annotated, mip_allele_annotated, mompS2_allele_annotated, proA_allele_annotated, neuA_allele_annotated, mompS1_allele_annotated, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile, mompS_not_identified)
 
-    #store_sequences(args, mompS2_sequence, mompS1_sequence, mompS2_allele_annotated, mompS2_allele, assembly_name, flaA_allele_annotated, flaA_allele)
+def get_SBT_allele_blastn_hits(query, subject, assembly_name, out, args): #TODO: Check that these are the correct way around for db and seq
+    """ Run blastn of contig against locus database to find closest matching allele """
 
+    try:
+        blastn_output = run_blastn(subject, query) 
+        df = read_blastn_output(blastn_output)
+
+        if df.empty: #If there are no BLASTn hits, the annotation for the allele should be "-"
+            annotated_allele = "-"
+            allele_number = "-"
+            allele = "-"
+            assembly_seq = "-"
+        if not df.empty:
+            blastn_hits = []
+            hit_number=0
+
+            for index, row in df.iterrows(): #For each blast hit, do:
+                hit_number+=1
+                #qseq, qstart, qend = get_sseq_start_stop_positions(row,strand='sstrand',seq='qseq',start='qstart',end='qend') #TODO: check if this should be added/is necessary 
+                to_append = [hit_number, row['sacc'], row['pident'], row['score'], row['length'], row['slen'], row['qlen'], row['gaps'], row['mismatch'], row['qstart'], row['qend'], row['qseq']] #TODO: Bitscore? #TODO Add strand (correct strand), and switch start + end if minus strand
+                blastn_hits.append(to_append)
+
+            #Keep only the best hit. #TODO: Make sure this logic is correct - e.g. overlapping hits (see 10* vs 80*?)?
+            allele_annotated, allele_number, assembly_strand, assembly_seq, assembly_start, assembly_end = cull_redundant_hits(blastn_hits) 
+    
+            #Get locus, allele number and annotated allele number
+            locus_number = allele_number.split('_')
+            locus = locus_number[0]
+            allele = locus_number[1]
+            locus_number = allele_annotated.split('_')
+            annotated_allele = locus_number[1]
+
+            #Write allele seqences to files if flags are specified
+            write_allele_sequences_to_files(locus, annotated_allele, allele, assembly_name, assembly_strand, assembly_start, assembly_end,assembly_seq,out, args) #TODO: sort out mompS2 positions before passing this
+
+
+        return annotated_allele, allele_number, allele, assembly_seq
+
+    except:
+        logging.exception("Error in blastn db against sequence.")
+        sys.exit("Error in blastn db against sequence.")
+
+
+def get_closest_ST(sts, allele_combinations, annotated_allele_combinations): #Adapted from Kleborate
+    """ Get the closest matching ST if <3 alleles are imprecise matches. """
+    header, st_names, alleles_to_st = load_st_db(sts) #Load the lpneumophila.txt database
+
+    best_allele_numbers_hits = []
+    best_allele_numbers_annotated = []
+    mismatch_loci, missing_loci = 0, 0
+    loci=["flaA","pilE","asd","mip","mompS","proA","neuA"] #make sure only mompS2 is used here, not mompS1
+
+    #For each locus, count if mismatch, and append the unannotated allele number to best_allele_numbers_hits
+    for locus in loci:
+        allele_number = allele_combinations[locus] #Get the unannotated allele number from the dictionary  
+        allele = annotated_allele_combinations[locus] #Get the annotated allele number from the dictionary 
+
+        #Count number of genes (out of the 7 in the SBT scheme) with mismatches or incomplete coverage
+        if '*?' in allele:
+            mismatch_loci += 1 
+        elif '*' in allele:
+            mismatch_loci += 1
+        elif '?' in allele:
+            mismatch_loci += 1
+        elif '-' in allele:
+            mismatch_loci += 1
+        
+        #Append the allele number for each locus 
+        best_allele_numbers_hits.append(allele_number)
+        best_allele_numbers_annotated.append(allele)
+
+    best_allele_number_combination = ','.join(best_allele_numbers_hits) #Convert to comma-separated
+
+    if mismatch_loci <= 3: # only report ST if at least 3 loci are precise matches 
+        if best_allele_number_combination in alleles_to_st:
+            closest_st = alleles_to_st[best_allele_number_combination]
+        else: #If not exact match with db, determine the closest ST
+            closest_st, _, mismatch_loci = get_closest_locus_variant(best_allele_numbers_hits, best_allele_numbers_annotated, alleles_to_st)
+    else:
+        closest_st = '0'
+
+    if mismatch_loci > 0 and closest_st != '0':
+        closest_st += '-' + str(mismatch_loci) + 'LV'
+
+    ST_annotated = closest_st
+    return ST_annotated
 
 
 def append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE_allele_annotated, asd_allele_annotated, mip_allele_annotated, mompS2_allele_annotated, proA_allele_annotated, neuA_allele_annotated, mompS1_allele_annotated, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile, mompS_not_identified):
- 
+    """ Once an iteration (assembly) is complete, append the results to the outfiles and write to stdout """
     ST_alleles["Strain"].append(assembly_name)
     ST_alleles["ST"].append(ST_annotated)
     ST_alleles["flaA"].append(flaA_allele_annotated)
@@ -446,55 +529,12 @@ def append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE
     return ST, mompS_not_identified
 
 
-
-def get_closest_ST(sts, allele_combinations, annotated_allele_combinations): #Adapted from Kleborate
-    """Get the closest matching ST if <3 alleles are imprecise matches. """
-    header, st_names, alleles_to_st = load_st_db(sts) #Load the lpneumophila.txt database
-
-    best_allele_numbers_hits = []
-    best_allele_numbers_annotated = []
-    mismatch_loci, missing_loci = 0, 0
-    loci=["flaA","pilE","asd","mip","mompS","proA","neuA"] 
-
-    #For each locus, count if mismatch, and append the unannotated allele number to best_allele_numbers_hits
-    for locus in loci:
-        allele_number = allele_combinations[locus] #Get the unannotated  allele number from the dictionary 
-        allele = annotated_allele_combinations[locus] #Get the annotated allele number from the dictionary 
-
-        if '*?' in allele:
-            mismatch_loci += 1 #Count number of genes (out of the 7) with a mismatch or incomplete coverage
-        elif '*' in allele:
-            mismatch_loci += 1
-        elif '?' in allele:
-            mismatch_loci += 1
-        elif '-' in allele:
-            mismatch_loci += 1
-        
-        #Append the allele number for each locus 
-        best_allele_numbers_hits.append(allele_number)
-        best_allele_numbers_annotated.append(allele)
-
-    best_allele_number_combination = ','.join(best_allele_numbers_hits) #Convert to comma-separated
-
-    if mismatch_loci <= 3: # only report ST if at least 3 loci are precise matches 
-        if best_allele_number_combination in alleles_to_st:
-            closest_st = alleles_to_st[best_allele_number_combination]
-        else: #If not exact match with db, determine the closest ST
-            closest_st, _, mismatch_loci = get_closest_locus_variant(best_allele_numbers_hits, best_allele_numbers_annotated, alleles_to_st)
-    else:
-        closest_st = '0'
-
-    if mismatch_loci > 0 and closest_st != '0':
-        closest_st += '-' + str(mismatch_loci) + 'LV'
-
-    ST_annotated = closest_st
-    return ST_annotated
-
-def get_closest_locus_variant(best_allele_numbers_hits, best_allele_numbers_annotated, alleles_to_st): #Adapted from Kleborate
+def get_closest_locus_variant(best_allele_numbers_hits, best_allele_numbers_annotated, alleles_to_st):
+    """ Get the closest locus variant in case of mismatches/incomplete sequence match. Logic adapted from Kleborate. """
     best_allele_numbers_annotated = list(best_allele_numbers_annotated) 
     closest = []
-    closest_alleles = {}   # key = st, value = list
-    min_dist = len(best_allele_numbers_hits)  # number mismatching loci, ignoring SNPs
+    closest_alleles = {}   #key = st, value = list
+    min_dist = len(best_allele_numbers_hits) #number mismatching loci, ignoring SNPs
 
     for index, item in enumerate(best_allele_numbers_hits):
         if item == '-':
@@ -525,62 +565,15 @@ def get_closest_locus_variant(best_allele_numbers_hits, best_allele_numbers_anno
 
     return closest_st, min_dist, min_dist_incl_snps
 
-
-def get_SBT_allele_blastn_hits(query, subject, assembly_name, out, args): #TODO: Must check that these are the correct way around for db and seq
-    """Run blastn of contig against locus database"""
-    #Run sequence against the locus database to find closest matching allele
-    try:
-        blastn_output = run_blastn(subject, query) 
-        df = read_blastn_output(blastn_output)
-
-        if df.empty: #If there are no BLASTn hits, the annotation for the allele should be "-"
-            annotated_allele = "-"
-            allele_number = "-"
-            allele = "-"
-            assembly_seq = "-"
-        if not df.empty:
-            blastn_hits = []
-            hit_number=0
-
-            for index, row in df.iterrows(): #For each blast hit, do:
-                hit_number+=1
-                #qseq, qstart, qend = get_sseq_start_stop_positions(row,strand='sstrand',seq='qseq',start='qstart',end='qend') #can we do this for only the one hit?  
-                to_append = [hit_number, row['sacc'], row['pident'], row['score'], row['length'], row['slen'], row['qlen'], row['gaps'], row['mismatch'], row['qstart'], row['qend'], row['qseq']] #TODO: Bitscore? #TODO Add strand, and switch start + end if minus strand
-                #To remember: Query is assembly. Seq/db is mlst db.  
-                blastn_hits.append(to_append)
-
-                #Keep only the line with the best hit
-                #TODO: Make sure this logic is correct - e.g. overlapping hits?
-            allele_annotated, allele_number, assembly_strand, assembly_seq, assembly_start, assembly_end   = cull_redundant_hits(blastn_hits) #TODO: ALSO RETURN SEQUENCE AND START STOP POSITIONS?
-    
-            #Get locus, allele number and annotated allele number
-            locus_number = allele_number.split('_')
-            locus = locus_number[0]
-            allele = locus_number[1]
-            locus_number = allele_annotated.split('_')
-            annotated_allele = locus_number[1]
-
-            #TODO: Check if this is the correct place to be running this... maybe further up? Must specify when to write these
-            #TODO WRITE TO FILE HERE!
-
-            write_allele_sequences_to_files(locus, annotated_allele, allele, assembly_name, assembly_strand, assembly_start, assembly_end,assembly_seq,out, args) #Sort out mompS2 positions before passing this
-
-
-        return annotated_allele, allele_number, allele, assembly_seq
-
-    except:
-        logging.exception("Error in blastn db against sequence.")
-        sys.exit("Error in blastn db against sequence.")
-
 def write_allele_sequences_to_files(locus, annotated_allele, allele, assembly_name, assembly_strand, assembly_start, assembly_end,assembly_seq,out, args):
-    """Save/delete sequences in files depending on args given"""
+    """ Save/delete sequences in files depending on args given """
 
     #SBT allele + mompS1 allele sequences - For each allele, store if it is meant to be  
     alleles_to_store = []
 
     if args.store_all_alleles: #Store all alleles regarless of novel or not
         alleles_to_store.append(locus)
-    elif args.store_mompS_alleles and not args.store_novel_alleles and locus == "mompS": #Somehow get correct copy here, as the locus is the same. 
+    elif args.store_mompS_alleles and not args.store_novel_alleles and locus == "mompS": #TODO: get correct mompS copy here, as the locus is the same - i.e. separate mompS1 and mompS2 to diff files. Also - make mompS header (with positions in genome) consistent with the other alleles. 
         alleles_to_store.append(locus)
     elif args.store_novel_alleles and annotated_allele != allele: #Store novel alleles   
         alleles_to_store.append(locus)
@@ -590,41 +583,34 @@ def write_allele_sequences_to_files(locus, annotated_allele, allele, assembly_na
         fasta_header = ">" + "Locus:" + locus +  " Allele number:" + annotated_allele + " Assembly:" + assembly_name + " Strand:" + assembly_strand + " Pos:" + str(assembly_start) + "-" + str(assembly_end) #TODO: Decide what to include in the header
         fasta_sequence = assembly_seq
         filename = out + locus + "_" + assembly_name + ".fasta"
-        f=open(filename,"w+") # file name and mode
+        f=open(filename,"w+")
         f.writelines(fasta_header)
         f.writelines("\n")
         f.writelines(fasta_sequence)
-        # to add data you only add String data so you want to type cast variable  
         f.writelines("\n")
-#mompS     #TODO: make header consistent with the other outputs.
-#TODO IMPORTANT! Separate mompS1 and mompS2 here.
 
 
-def cull_redundant_hits(blast_hits): #Adapted from Kleborate  
-    """
-    Cull out redundant hits here (essentially implementing BLAST's -culling_limit 1 feature but with Kleborate's own logic).
-    """
-    # Sort the hits from best to worst. Hit quality is defined as the product of gene coverage, identity and score.
+def cull_redundant_hits(blast_hits):
+    """ Cull out redundant hits (using Kleborate's logic). """
+    #Read df 
     headers = ['hit_number','sacc','pident','score', 'length','slen','qlen','gaps','mismatch','qstart','qend','qseq'] 
     df = pd.DataFrame(blast_hits, columns=headers)
     df[["pident", "score", "length", "slen", "qlen", "qstart","qend"]] = df[["pident", "score", "length", "slen", "qlen", "qstart","qend"]].apply(pd.to_numeric) #Set these cols as numeric
 
-        
-    #Assign sorting score using Kleborate's lamba function for this, and then sort by the score:
-    #From Kleborate: blast_hits = sorted(blast_hits, key=lambda x: (1/(x.pident[2] * x.score[3] * x.slen[4]), x.gene_id[1])) #
-    df = df.assign(sorting = lambda x: (1/x['pident'] * x['score'] * x['slen']))
+    #Sort the hits from best to worst. Hit quality is defined as the product of gene coverage, identity and score.        
+    #Code in Kleborate: blast_hits = sorted(blast_hits, key=lambda x: (1/(x.pident[2] * x.score[3] * x.slen[4]), x.gene_id[1])) #
+    df = df.assign(sorting = lambda x: (1/x['pident'] * x['score'] * x['slen'])) #Assign hit quality to new column 
     df.sort_values(by='sorting', ascending=True) #Sort the values
 
-    allele_hit = df.head(1).values.tolist() #Take the top hit as the allele.
-    # NB TODO add more checks for overlap etc before doing this
+    allele_hit = df.head(1).values.tolist() #Take the top hit as the allele. # NB TODO add more checks for overlapping matches.
 
-    for hit in allele_hit: #should only be one hit, there is probably a neater way to look through these, but it works for now
+    for hit in allele_hit: #TODO: Make sure there is only one hit
         #Check which strand the sequence is on
         if hit[9] > hit[10]:
             strand="minus"
             start = hit[10]
             end = hit[9]
-            my_seq = Seq(hit[11]) #TODO: Make sure that we are storing the correct sequence - i.e. the sequence from the assembly, not from the database.
+            my_seq = Seq(hit[11]) #TODO: Make sure that we are storing the correct sequence - i.e. the sequence from the assembly, not from the database. 
             seq=my_seq.reverse_complement()
 
         elif hit[9] < hit[10]: 
@@ -633,8 +619,7 @@ def cull_redundant_hits(blast_hits): #Adapted from Kleborate
             end = hit[10] 
             seq = Seq(hit[11])
 
-        #Check if the best allele hit has 100% sequence identity and coverage. Add * for inexact match ? for incomplete coverage, and "-" for missing or too low coverage/pident matches.
-
+        #Check if the best allele hit has 100% sequence identity and coverage. Add * for inexact match, ? for incomplete coverage, and - for missing or too low coverage/pident matches.
         locus_number = hit[1].split('_')
         locus = locus_number[0]
 
@@ -647,50 +632,18 @@ def cull_redundant_hits(blast_hits): #Adapted from Kleborate
         elif hit[2] < 100 and (hit[4]/hit[5]) == 1: #pident is not 100 and the alignment is the same length as the reference
             allele_annotated = (hit[1] + "*") #
             allele_number= hit[1]
-        elif hit[2] < 100 and (hit[4]/hit[5]) != 1: #pident is not 100 and the alignment is not the same length as the reference
+        elif hit[2] < 100 and (hit[4]/hit[5]) != 1: #pident is not 100 and the alignment is not the same length as the reference 
             allele_annotated = (hit[1] + "*?")
             allele_number= hit[1]
         elif hit[2] == 100 and (hit[4]/hit[5]) != 1: #pident is 100 and the alignment is not the same length as the reference
             allele_annotated = (hit[1] + "?")
             allele_number= hit[1]
-        else:
-            print("Error") #TODO: Add error or warning if not work
-
 
     return allele_annotated, allele_number, strand, seq, start, end 
 
-#TODO: Adapt features from Kleborate.
-#filtered_blast_hits = []
-#for h in blast_hits:
-#    if not overlapping(h, filtered_blast_hits):
-#        filtered_blast_hits.append(h)
-
-#return filtered_blast_hits
-
-def overlapping(hit, existing_hits):
-    # Only consider hits in the same reading frame.
-    existing_hits = [h for h in existing_hits if
-                     h.strand == hit.strand and h.frame == hit.frame and
-                     h.contig_name == hit.contig_name]
-
-    for existing_hit in existing_hits:
-        if hits_overlap(hit, existing_hit):
-            return True
-
-    return False
-
-
-def hits_overlap(a, b):
-    if a.contig_start <= b.contig_end and b.contig_start <= a.contig_end:  # There is some overlap
-        allowed_overlap = 50
-        overlap_size = len(range(max(a.contig_start, b.contig_start),
-                                 min(a.contig_end, b.contig_end) + 1))
-        return overlap_size > allowed_overlap
-    else:
-        return False
-#END TODO Adapt features from Kleborate.
 
 def get_1116R_hit(std_output):
+    """ Get the perc id and cov from the 1116R alignment """
     for line in std_output.splitlines():
         if line.startswith("# Identity:"):
             pidentline=line
@@ -709,9 +662,7 @@ def get_1116R_hit(std_output):
     return pident, cov
 
 def run_water_alignment(df, primer_1116R, out, args, assembly_name, iteration, seq):
-    """ Align query sequence/assembly filt against the 1116R primer"""
-    #logging.info("Running water alignment on contig fasta files with 1116R primer.")
-
+    """ Align query sequence against the 1116R primer """
     aseq=('asis:' + df[seq])
     try: #run water alignment on df[seq]
         water_cmd = WaterCommandline(gapopen=10, gapextend=0.5,
@@ -719,14 +670,12 @@ def run_water_alignment(df, primer_1116R, out, args, assembly_name, iteration, s
                                        asequence=aseq, bsequence=primer_1116R)
         std_output, err_output = water_cmd()
 
-
-        if args.verbose:
+        if args.verbose: 
             filename = out + assembly_name + "_" + str(iteration) + "_" + "water.txt" 
-            logging.info("Verbose mode is on. Will print the two mompS water alignments to file: " + filename)
-            f=open(filename,"w+") # file name and mode
+            logging.info("Verbose mode is on. The two mompS water alignments will be stored in file: " + filename)
+            f=open(filename,"w+")
             f.writelines(std_output)
 
-        #print(std_output) #Type string - TODO: print in verbose mode only
         #Then check the hit scores and assign mompS copy:
         pident, cov = get_1116R_hit(std_output) 
         if pident >= 90.0 and cov == 100.0: #TODO: add option to specify minimum %ID and %COV for 1116R
@@ -735,18 +684,18 @@ def run_water_alignment(df, primer_1116R, out, args, assembly_name, iteration, s
             mompS_copy="mompS1"
         #TODO: Check if 1116R is always on rev, and if we should flip?
 
-    except: #TODO update this exception
+    except:
         logging.exception("Error running water pairwise alignment.")
         logging.info("##############")
         logging.info("mompS2 could not be separated from mompS1 by ≥90% nucleotide identity and 100% coverage match to 1116R.")
         logging.info("Please run the command again with option --verbose to print the .water alignment and the 987bp mompS sequences to files and manually inspect them.")
         logging.info("##############")
-        sys.exit("Error running water pairwise alignment.")
 
     return mompS_copy
    
 
 def get_output_headers():
+    """ Set up headers for outfiles and stdout """
     ST_alleles = {"Strain":[],"ST":[],"flaA":[],"pilE":[],"asd":[],"mip":[],"mompS":[],"proA":[],"neuA":[]} 
     mompS_alleles = {"Strain":[],"mompS1":[],"mompS2":[]} 
 
@@ -755,48 +704,27 @@ def get_output_headers():
     return ST_alleles, mompS_alleles
 
 
-def set_up_logging(args):
-    if args.log:
-        logfile = args.log #Log to provided file path
-    else:
-        logfile = None #Log to terminal output
-    # Set up log to stdout
-    logging.basicConfig(
-        filename=logfile,
-        level=logging.DEBUG, 
-        filemode='w',
-        format='%(asctime)s %(message)s',
-        datefmt='%m-%d-%Y %H:%M:%S')
-
 ####################################################################################################################################
 # main function
 ####################################################################################################################################
 def main():
     args = parse_args()
-    #threads = str(args.threads)
-    threads=1
     start_time = time.time()
 
     set_up_logging(args)
-    logging.info('This is ONTmompS v1.2.0')
+    logging.info('This is ONTmompS v2.0.0')
     logging.info('Running command: {0}'.format(' '.join(sys.argv)))
-
+    
+    #Set up inputs/outputs
     verbose=args.verbose
-    #TODO: Set all of this in a setup def.
     db_location = check_dbdir(args) 
-    sts, mompS2_ref, primer_1116R, flaA_db_file, pilE_db_file, asd_db_file, mip_db_file, mompS_db_file, proA_db_file, neuA_db_file = check_db(db_location) #TODO: move these into the necessary defs instead of here  
+    sts, mompS2_ref, primer_1116R, flaA_db_file, pilE_db_file, asd_db_file, mip_db_file, mompS_db_file, proA_db_file, neuA_db_file = check_db(db_location) #TODO: move these into the necessary defs instead of here   
     sequence_list = check_assemblies(args)
     out, ST_outfile, mompS_outfile = check_outputs(args)
 
-    #Logging
 
-
-
-    #TODO: only log if --log flag has been activated. Set to always log, but only to file if specified?    
-
-    #Run SBT + mompS on all assemblies in loop. #TODO: Set this up so it prints to file for each iteration, so that the run may be canceled but you keep the results so far . 
+    #Get mompS + SBT alleles + ST for each assemblies in a loop. TODO: Make this run in parallel with threads
     ST_alleles, mompS_alleles = get_output_headers()
-
     for assembly_input in sequence_list:
         assembly_file, assembly_name = check_assembly(assembly_input,out)
         get_SBT(assembly_file, mompS2_ref,mompS_db_file, primer_1116R, asd_db_file, flaA_db_file, mip_db_file, neuA_db_file, pilE_db_file, proA_db_file, out, assembly_name,sts, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile,args)
@@ -806,8 +734,5 @@ def main():
     time_mins = float(total_time) / 60
     logging.info("ONTmompS completed in " + str(time_mins) + ' mins.')
 
-
-# call main function
 if __name__ == '__main__':
     main()
-

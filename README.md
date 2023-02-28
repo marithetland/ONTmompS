@@ -17,7 +17,7 @@ python ONTmompS.py -a assembly.fasta
 
 ## Installation
 
-Clone the repo and install dependencies. We recommend installing in a conda (mamba) environment:
+Clone this repository and install the dependencies. We recommend installing in a conda (mamba) environment:
 
 ```
 git clone https://github.com/marithetland/ONTmompS.git
@@ -25,18 +25,19 @@ mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss biop
 ```
 
 ## Description 
-This tool was built as an _in silico_ approach to identify the Sequence Type (ST) for _Legionella pneumophila_ from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns allele numbers and ST. We recommend using long-read or hybrid assemblies that have circular chromosomes when running this tool. It will not work with short-read assemblies.
+This tool was built as an _in silico_ approach to identify the Sequence Type (ST) of _Legionella pneumophila_ genomes from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns allele numbers and ST. We recommend using long-read or hybrid assemblies that have circular chromosomes when running this tool. It is not intended for short-read assemblies.
 
 **Background**
 
-Sequence-based typing (SBT) of _Legionella pneumophila_ is a valuable tool in epidemiological studies and outbreak investigations of Legionnaires’ disease. In the _L. pneumophila_ SBT scheme, _mompS2_ is one of seven genes that determine the ST. The _Legionella_ genome typically contains two copies of _mompS_ (designated _mompS1_ and _mompS2_). When they are non-identical, it can be challenging to determine the _mompS2_ allele, and subsequently the ST, from Illumina sequencing, due to the short read-length. Using long-read sequencing from Oxford Nanopore Technologies (ONT) Kit12/Kit10 chemistry and R10.4.1/R9.4 flow cells, together with Trycycler v0.5.3 and Medaka v1.7.2 for long-read assembly and polishing, we were able to identify the _mompS2_ allele and subsequently the _L. pneumophila_ SBT, when using this tool. 
+Sequence-based typing (SBT) of _Legionella pneumophila_ is a valuable tool in epidemiological studies and outbreak investigations of Legionnaires’ disease. In the _L. pneumophila_ SBT scheme, _mompS2_ is one of seven genes that determine the ST. The _Legionella_ genome typically contains two copies of _mompS_ (designated _mompS1_ and _mompS2_). When they are non-identical, it can be challenging to determine the _mompS2_ allele, and subsequently the ST, from Illumina sequences, due to the short read-length. Using long-read sequencing from Oxford Nanopore Technologies (ONT) Kit12/Kit9 chemistry and R10.4/R9.4.1 flow cells, together with Trycycler v0.5.3 and Medaka v1.7.2 for long-read assembly and polishing, we were able to identify the _mompS2_ allele and subsequently the _L. pneumophila_ ST of 81/81 genomes when using this tool.
 
 **Cite**
 
-If you use this tool, please cite: Krøvel AV and Hetland MAK et al. Long-read sequencing as a solution to the challenge of calling _mompS_ for _L. pneumophila_ SBT with short-reads. https://github.com/marithetland/ONTmompS
+If you use this tool, please cite: Hetland MAK and Soma MA et al. ONTmompS (version 2.2.0). https://github.com/marithetland/ONTmompS
+
 
 ## Output
-With default settings, two output files are created: `LpST_ONTmompS.tsv` reports the ST and SBT alleles. `mompS_alleles_ONTmompS.tsv` reports the mompS alleles. The ST and alleles will be annotated if there are mismatching or missing alleles:
+With default settings, two output files are created: `LpST_ONTmompS.tsv` reports the ST and allele numbers of the 7 SBT loci. `mompS_alleles_ONTmompS.tsv` reports the mompS alleles. The ST and alleles will be annotated if there are mismatching or missing alleles:
 
 * A complete ST is reported if allele matches are found to all seven SBT genes in the database (e.g. ST560).
 * If there are < 3 inexact matches, the nearest matching ST with the number of locus variants (LVs) is reported, e.g. ST560-1LV.
@@ -48,15 +49,14 @@ It is possible to store the allele sequences to files, using the flags: `store_n
 
 
 
-
 ## Full usage
-Activate the conda environment: 
 
 ```
-usage: ONTmompS.py [-h] [-v] -a ASSEMBLIES [ASSEMBLIES ...]
-                   [-d DATABASE_FOLDER] [--store_mompS_alleles]
-                   [--store_novel_alleles] [--store_all_alleles] [--verbose]
-                   [--outfilename OUTFILENAME] [-outdir OUTDIR]
+usage: ONTmomps.py [-h] [-v] -a ASSEMBLIES [ASSEMBLIES ...] [--db DB]
+                   [--store_mompS_alleles] [--store_novel_alleles]
+                   [--store_all_alleles] [--verbose] [-l LOG]
+                   [--ST_outfile ST_OUTFILE] [--mompS_outfile MOMPS_OUTFILE]
+                   [-o OUTDIR]
 
 In silico SBT of Legionella pneumophila from long-read or hybrid assemblies
 
@@ -69,8 +69,7 @@ Input options (required):
                         FASTA file(s) for assemblies (*.fasta)
 
 Optional flags:
-  -d DATABASE_FOLDER, --database_folder DATABASE_FOLDER
-                        Provide a path to database location if different than
+  --db DB               Provide a path to database location if different than
                         that provided by this tool.
   --store_mompS_alleles
                         Print mompS alleles to files named
@@ -80,19 +79,23 @@ Optional flags:
                         {assembly}_{allele}.fna.
   --store_all_alleles   Print all alleles (7 genes in SBT scheme + mompS1) to
                         files named {assembly}_{allele}.fna.
-  --verbose             Keep intermediate files for debugging.
+  --verbose             Log more details and keep intermediate files for
+                        debugging.
+  -l LOG, --log LOG     Write logging to specified file name instead of stdout
 
 Output options:
-  --ST_outfile OUTFILENAME
+  --ST_outfile ST_OUTFILE
                         Output filename for STs. Default: ./LpST_ONTmompS.tsv
-  --mompS_outfile OUTFILENAME
-                        Output filename for mompS copy allele numbers. Default: ./mompS_alleles_ONTmompS.tsv
-  -outdir OUTDIR        Output directory to store novel alleles in. Default is
+  --mompS_outfile MOMPS_OUTFILE
+                        Output filename for mompS copy allele numbers.
+                        Default: ./mompS_alleles_ONTmompS.tsv
+  -o OUTDIR, --outdir OUTDIR
+                        Output directory to store novel alleles in. Default is
                         current working directory
 ```
 
 ## Update database
-The database in this repository is the same version as that in https://github.com/tseemann/legsta/tree/master/db. Please contact the Legionella-SBT team at UKHSA if you want to obtain a more recent database version. When you have your desired database, you need to make sure the files follow the same format as those in the db for this repo (see below). If the sequences are provided in csv format with 'sequence,number', you can run the commands below to make the database compatible with ONTmompS:
+The database in this repository is the same version as that in https://github.com/tseemann/legsta/tree/master/db. Please contact the Legionella-SBT team at UKHSA if you want to obtain a more recent database version. When you have your desired database, you need to make sure the files follow the same format as those in the db for this repo. If the sequences are provided in csv format with 'sequence,number', you can run the commands below to make the database compatible with ONTmompS:
 
 ```
 unzip sbt_schema_10_11_2022_12_59.zip ; cd sbt_schema_10_11_2022_12_59 
