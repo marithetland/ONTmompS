@@ -1,0 +1,29 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: ONTmompS
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Marit Andrea Klokkhammer
+    family-names: Hetland
+    email: marit.hetland@outlook.com
+    orcid: 'https://orcid.org/0000-0003-4247-8304'
+    affiliation: >-
+      Department of Medical Microbiology, Stavanger
+      University Hospital, Stavanger, Norway; Department of
+      Biological Sciences, Faculty of Mathematics and
+      Natural Sciences, University of Bergen, Bergen, Norway
+  - given-names: Markue André
+    family-names: Soma
+    affiliation: >-
+      Department of Medical Microbiology, Stavanger
+      University Hospital, Stavanger, Norway
+identifiers:
+  - type: url
+    value: 'https://github.com/marithetland/ONTmomps'
+license: GPL-3.0
+version: 2.2.0
