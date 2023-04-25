@@ -33,7 +33,7 @@ Sequence-based typing (SBT) of _Legionella pneumophila_ is a valuable tool in ep
 
 **Cite**
 
-If you use this tool, please cite: Hetland MAK and Soma MA et al. ONTmompS (version 2.2.0). https://github.com/marithetland/ONTmompS
+If you use this tool, please cite: Krøvel AV, Hetland MAK, Bernhoff E, et al. Long-read sequencing for reliably calling the _mompS_ allele in _Legionella pneumophila_ sequence-based typing. Frontiers in Cellular and Infection Microbiology. 2023; 13:517.
 
 
 ## Output
