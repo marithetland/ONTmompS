@@ -6,7 +6,7 @@ Copyright 2023 Markus Soma
 https://github.com/marithetland/ONTmompS
 """
 
-#Import modules
+#Import modules 
 from argparse import ArgumentParser, FileType
 import distutils.spawn
 from dataclasses import replace
