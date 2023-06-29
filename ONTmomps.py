@@ -252,16 +252,8 @@ def run_blastn(subject, query):
     """ Run blastn """
     #Run BLASTn to find allele hits. Uses the same BLASTn logic as Kleborate's MLSTblast.py. 
     try:
-        blastn_command = NcbiblastnCommandline(cmd='blastn',
-                                  task='blastn',
-                                  query=query, 
-                                  subject=subject, 
-                                  dust='no',
-                                  evalue='1E-20',
-                                  word_size='32',
-                                  max_target_seqs='10000',
-                                  perc_identity='90',
-                                  outfmt='"6 sacc pident slen qlen length score gaps mismatch bitscore sseq qseq sstrand sstart send qacc qstart qend qframe"')
+        blastn_command = run_command(['blastn -task blastn -query', query,'-subject', subject,' -dust no -evalue 1E-20 -word_size 32 -max_target_seqs 10000 -perc_identity 90 -outfmt "6 sacc pident slen qlen length score gaps mismatch bitscore sseq qseq sstrand sstart send qacc qstart qend qframe"' ], shell=True)
+
         blastn_output = blastn_command()[0].strip() 
 
     except:
