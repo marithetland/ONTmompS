@@ -337,6 +337,12 @@ def get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, 
                 mompS1_sequence=hit[1]
                 run_command(['echo ">',mompS1_copy,'__',assembly_name,'" >>  ',out,mompS1_copy,'_seq_with_flank_', assembly_name,'.fasta ; echo ', str(mompS1_sequence),' >>  ',out,mompS1_copy,'_seq_with_flank_', assembly_name,'.fasta'  ], shell=True) 
 
+        #Warn if num_mompS_hits != 2
+        if num_mompS_hits > 2:
+            logging.info("Warning, more than two mompS hits were found. Legionella pneumophila typically has two mompS copies. Please inspect your assembly quality. If you believe this is true, please let us know in a GitHub issue so that we can update the code.")
+        elif num_mompS_hits < 2: 
+            logging.info("Warning, only one mompS hit was found in your genome. Legionella pneumophila typically has two mompS copies. Please inspect your assembly quality - it is possible that mompS1 and mompS2 have been merged in assembly, which could lead to incorrect typing.")
+
         #If any of the mompS copies are not found, store them as missing "-" 
         mompS_not_identified = []
         if not mompS2_copy:
