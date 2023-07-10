@@ -251,21 +251,21 @@ def check_assembly(assembly_file,out):
 def run_blastn(subject, query):
     """ Run blastn """
     #Run BLASTn to find allele hits. Uses the same BLASTn logic as Kleborate's MLSTblast.py. 
-    try:
-        blastn_command = run_command(['blastn -task blastn -query', query,'-subject', subject,' -dust no -evalue 1E-20 -word_size 32 -max_target_seqs 10000 -perc_identity 90 -outfmt "6 sacc pident slen qlen length score gaps mismatch bitscore sseq qseq sstrand sstart send qacc qstart qend qframe"' ], shell=True)
+    my_blastn_file = './blastn_file.tsv'
 
-        blastn_output = blastn_command()[0].strip() 
+    try:
+        blastn_command = run_command(['blastn -task blastn -query ', query,' -subject ', subject,' -dust no -evalue 1E-20 -word_size 32 -max_target_seqs 10000 -perc_identity 90 -outfmt "6 sacc pident slen qlen length score gaps mismatch bitscore sseq qseq sstrand sstart send qacc qstart qend qframe" > ', my_blastn_file], shell=True)
 
     except:
         logging.exception("Error in blast of assembly file to mompS2_ref db.")
 
-    return blastn_output
+    return my_blastn_file
 
-def read_blastn_output(blastn_output):
+def read_blastn_output(my_blastn_file):
     """ Read BLASTn output as a pandas dataframe """
     try:
         headers = ['sacc','pident','slen','qlen','length','score','gaps','mismatch','bitscore','sseq','qseq','sstrand','sstart','send','qacc','qstart','qend','qframe'] 
-        rows = [line.split() for line in blastn_output.splitlines()]    
+        rows = [line.split() for line in my_blastn_file.splitlines()]    
         df = pd.DataFrame(rows, columns=headers)
 
         #BLASTn runs an alignment. Remove any "-" characters from sequence (deletions relative to reference):
