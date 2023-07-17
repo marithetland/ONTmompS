@@ -317,9 +317,13 @@ def get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, 
         mompS1_copy = [] 
         mompS1_sequence = []
         num_mompS_hits = 0
+        mompS_not_identified = []
 
         for index, row in df.iterrows():
-            if float(row['length'])/float(row['qlen']) >= 0.5: #Minimum half of the alignment needs to be met
+            #TODO: Adjust 0.5 limit?
+            #Example with 155bp mompS-fragment gave 426bp alignment with mompS2_ref (987bp) --> 0.43, hence not giving hit. Therefore 0.5 stays for now.
+            #MompS1 and mompS2 gives around 920-990 bp --> length/qlen = 920/987=0.93. Can probably adjust this to 0.9 instead of 0.5.
+            if float(row['length'])/float(row['qlen']) >= 0.5: #Minimum half of the alignment needs to be met.
                 num_mompS_hits+=1
                 sseq, sstart, send = get_sseq_start_stop_positions(row,strand='sstrand',seq='sseq',start='sstart',end='send')
                 mompS_copy = run_water_alignment(row, primer_1116R, out, args, assembly_name, num_mompS_hits, seq='sseq')
@@ -328,32 +332,36 @@ def get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, 
 
         #Assign mompS copies and store sequence to respective files:
         for hit in mompS_blastn_hits:
-            if hit[0]=='mompS2':
-                mompS2_copy=hit[0]
-                mompS2_sequence=hit[1]
-                run_command(['echo ">',mompS2_copy,'__',assembly_name,'" >>  ',out,mompS2_copy,'_seq_with_flank_', assembly_name,'.fasta ; echo ', str(mompS2_sequence),' >>  ',out,mompS2_copy,'_seq_with_flank_', assembly_name,'.fasta'  ], shell=True) 
-            elif hit[0]=='mompS1':
-                mompS1_copy=hit[0]
-                mompS1_sequence=hit[1]
-                run_command(['echo ">',mompS1_copy,'__',assembly_name,'" >>  ',out,mompS1_copy,'_seq_with_flank_', assembly_name,'.fasta ; echo ', str(mompS1_sequence),' >>  ',out,mompS1_copy,'_seq_with_flank_', assembly_name,'.fasta'  ], shell=True) 
+            if num_mompS_hits == 2:
+                if hit[0]=='mompS2':
+                    mompS2_copy=hit[0]
+                    mompS2_sequence=hit[1]
+                    run_command(['echo ">',mompS2_copy,'__',assembly_name,'" >>  ',out,mompS2_copy,'_seq_with_flank_', assembly_name,'.fasta ; echo ', str(mompS2_sequence),' >>  ',out,mompS2_copy,'_seq_with_flank_', assembly_name,'.fasta'  ], shell=True) 
+                elif hit[0]=='mompS1' and mompS2_copy:
+                    mompS1_copy=hit[0]
+                    mompS1_sequence=hit[1]
+                    run_command(['echo ">',mompS1_copy,'__',assembly_name,'" >>  ',out,mompS1_copy,'_seq_with_flank_', assembly_name,'.fasta ; echo ', str(mompS1_sequence),' >>  ',out,mompS1_copy,'_seq_with_flank_', assembly_name,'.fasta'  ], shell=True) 
 
-        #Warn if num_mompS_hits != 2
-        if num_mompS_hits > 2:
-            logging.info("Warning, more than two mompS hits were found. Legionella pneumophila typically has two mompS copies. Please inspect your assembly quality. If you believe this is true, please let us know in a GitHub issue so that we can update the code.")
-        elif num_mompS_hits < 2: 
-            logging.info("Warning, only one mompS hit was found in your genome. Legionella pneumophila typically has two mompS copies. Please inspect your assembly quality - it is possible that mompS1 and mompS2 have been merged in assembly, which could lead to incorrect typing.")
+        if num_mompS_hits != 2: #if more/less than 2 hits, store mompS1 and mompS2 as missing "-"
+                if num_mompS_hits > 2:
+                    logging.info("Warning, more than two mompS hits were found. Legionella pneumophila typically has two mompS copies. Please inspect your assembly quality. If you believe this is true, please let us know in a GitHub issue so that we can update the code.")
+                elif num_mompS_hits < 2:
+                    logging.info("Warning, only one mompS hit was found in your genome. Legionella pneumophila typically has two mompS copies. Please inspect your assembly quality - it is possible that mompS1 and mompS2 have been merged in assembly, which could lead to incorrect typing.")
+                mompS2_copy="-"
+                mompS1_copy="-" 
+                to_print = (assembly_name + ": 1mompS can not be defined")
+                mompS_not_identified.append(to_print)
 
         #If any of the mompS copies are not found, store them as missing "-" 
-        mompS_not_identified = []
-        if not mompS2_copy:
+        if not mompS2_copy: #If mompS2 is not found, store both mompS1 and mompS2 as missing "-"
             mompS2_copy="-"
-            to_print = (assembly_name + ": mompS2 not found")
+            mompS1_copy="-" 
+            to_print = (assembly_name + ": 2mompS can not be defined")
             mompS_not_identified.append(to_print)
         if not mompS1_copy:
             mompS1_copy="-"
-            to_print = (assembly_name + ": mompS1 not found")
+            to_print = (assembly_name + ": 3mompS can not be defined")
             mompS_not_identified.append(to_print)
-
 
     except:
         logging.exception("Error: Did not find any hits to mompS in file: " + assembly_name)
