@@ -6,7 +6,7 @@ Copyright 2023 Markus Soma
 https://github.com/marithetland/ONTmompS
 """
 
-#Import modules 
+#Import modules
 from argparse import ArgumentParser, FileType
 import distutils.spawn
 from dataclasses import replace
@@ -47,6 +47,8 @@ def parse_args():
     output_args.add_argument('--ST_outfile', type=str, required=False, default='./LpST_ONTmompS.tsv', help='Output filename for STs. Default: ./LpST_ONTmompS.tsv')
     output_args.add_argument('--mompS_outfile', type=str, required=False, default='./mompS_alleles_ONTmompS.tsv', help='Output filename for mompS copy allele numbers. Default: ./mompS_alleles_ONTmompS.tsv')
     output_args.add_argument('-o','--outdir', type=str, default='./ONTmompS_allele_sequences', help='Output directory to store novel alleles in. Default is current working directory')
+
+    optional_args.add_argument('--amplicon',action='store_true',help='Treat mompS like standard SBT (single amplicon). Skip mompS1/2 separation and call the allele directly from the assembly.')
 
     return parser.parse_args()
 
@@ -169,14 +171,17 @@ def check_outputs(args):
     else:
         ST_outfile = "./LpST_ONTmompS.tsv"
 
-   #Outfile for mompS  
-    if args.mompS_outfile:
-        mompS_outfile = args.mompS_outfile
+    #Outfile for mompS1/2 (only when not in amplicon mode)
+    if args.amplicon:
+        mompS_outfile = None
     else:
-        mompS_outfile = "./mompS_alleles_ONTmompS.tsv"
+        mompS_outfile = args.mompS_outfile if args.mompS_outfile else "./mompS_alleles_ONTmompS.tsv"
 
     logging.info("Output STs will be written to: " + os.path.abspath(ST_outfile))
-    logging.info("Output mompS copy allele numbers will be written to: " + os.path.abspath(mompS_outfile))
+    if mompS_outfile:
+        logging.info("Output mompS copy allele numbers will be written to: " + os.path.abspath(mompS_outfile))
+    else:
+        logging.info("mompS1/2 output disabled (amplicon mode).")
 
     #Outdir for storing allele sequences or verbose files
     if args.store_mompS_alleles or args.store_novel_alleles or args.store_all_alleles or args.verbose:
@@ -273,6 +278,7 @@ def read_blastn_output(blastn_output):
     """ Read BLASTn output as a pandas dataframe """
     try:
         headers = ['sacc','pident','slen','qlen','length','score','gaps','mismatch','bitscore','sseq','qseq','sstrand','sstart','send','qacc','qstart','qend','qframe'] 
+
         rows = [line.split() for line in blastn_output.splitlines()]    
         df = pd.DataFrame(rows, columns=headers)
 
@@ -358,31 +364,41 @@ def get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, 
 
 def get_SBT(assembly_file, mompS2_ref,mompS_db_file, primer_1116R, asd_db_file, flaA_db_file, mip_db_file, neuA_db_file, pilE_db_file, proA_db_file, out, assembly_name, sts, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile,args):
     """ Read all locus alleles and assign ST """
-    mompS2_copy, mompS2_sequence, mompS1_copy, mompS1_sequence, mompS_not_identified = get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, out, assembly_name, args) 
 
-    #Get allele numbers for the mompS copies first
-    #Read mompS sequences for each copy:    
-    mompS2_sequence = (out + 'mompS2_seq_with_flank_' + assembly_name + '.fasta')
-    mompS1_sequence = (out + 'mompS1_seq_with_flank_' + assembly_name + '.fasta')
-
-    if os.path.isfile(mompS2_sequence):
-        mompS2_allele_annotated,  mompS2_allele_number, mompS2_allele, mompS2_sequence_temp = get_SBT_allele_blastn_hits(mompS2_sequence, mompS_db_file,assembly_name,out,args) 
-        if not args.verbose:
-            run_command(['rm ',mompS2_sequence ], shell=True) 
-    elif not os.path.isfile(mompS2_sequence):
-        mompS2_allele = "-"
-        mompS2_allele_annotated = "-"
-    if os.path.isfile(mompS1_sequence):
-        mompS1_allele_annotated, mompS1_allele_number, mompS1_allele, mompS2_sequence_temp = get_SBT_allele_blastn_hits(mompS1_sequence, mompS_db_file, assembly_name,out,args) 
-        if not args.verbose:
-            run_command(['rm ',mompS1_sequence ], shell=True)
-    elif not os.path.isfile(mompS1_sequence):
-        mompS1_allele = "-"
+    if args.amplicon:
+        #Treat mompS like other loci (no mompS1/2 split)
+        mompS2_allele_annotated, mompS2_allele_number, mompS2_allele, _ = get_SBT_allele_blastn_hits(
+            assembly_file, mompS_db_file, assembly_name, out, args
+        )
+        #No separate mompS1 allele in amplicon mode
         mompS1_allele_annotated = "-"
+        mompS_not_identified = []
+    else:
+        mompS2_copy, mompS2_sequence, mompS1_copy, mompS1_sequence, mompS_not_identified = get_mompS_blastn_hits(assembly_file, mompS2_ref,mompS_db_file,primer_1116R, out, assembly_name, args)
 
-    #mompS 987 bp sequences: If verbose mode is not on, remove the stored 987 bp mompS-region sequences and water alignment sequences.  
-    if args.verbose:
-        logging.info("Verbose mode is on. Will print the 987 bp mompS sequences of all input assemblies to files in: " + out)
+        #Get allele numbers for the mompS copies first
+        #Read mompS sequences for each copy:    
+        mompS2_sequence = (out + 'mompS2_seq_with_flank_' + assembly_name + '.fasta')
+        mompS1_sequence = (out + 'mompS1_seq_with_flank_' + assembly_name + '.fasta')
+
+        if os.path.isfile(mompS2_sequence):
+            mompS2_allele_annotated,  mompS2_allele_number, mompS2_allele, mompS2_sequence_temp = get_SBT_allele_blastn_hits(mompS2_sequence, mompS_db_file,assembly_name,out,args) 
+            if not args.verbose:
+                run_command(['rm ',mompS2_sequence ], shell=True) 
+        elif not os.path.isfile(mompS2_sequence):
+            mompS2_allele = "-"
+            mompS2_allele_annotated = "-"
+        if os.path.isfile(mompS1_sequence):
+            mompS1_allele_annotated, mompS1_allele_number, mompS1_allele, mompS2_sequence_temp = get_SBT_allele_blastn_hits(mompS1_sequence, mompS_db_file, assembly_name,out,args)
+            if not args.verbose:
+                run_command(['rm ',mompS1_sequence ], shell=True)
+        elif not os.path.isfile(mompS1_sequence):
+            mompS1_allele = "-"
+            mompS1_allele_annotated = "-"
+
+        if args.verbose:
+            logging.info("Verbose mode is on. Will print the 987 bp mompS sequences of all input assemblies to files in: " + out)
+
 
     #For each of the remaining 6 SBT genes, get the allele number and check if it is *, ? or - (done for mompS1 and mompS2 above):
     flaA_allele_annotated, flaA_allele_number, flaA_allele, flaA_sequence = get_SBT_allele_blastn_hits(assembly_file, flaA_db_file,assembly_name,out,args)
@@ -392,14 +408,14 @@ def get_SBT(assembly_file, mompS2_ref,mompS_db_file, primer_1116R, asd_db_file, 
     proA_allele_annotated, proA_allele_number, proA_allele, proA_sequence = get_SBT_allele_blastn_hits(assembly_file, proA_db_file,assembly_name,out,args)
     neuA_allele_annotated, neuA_allele_number, neuA_allele, neuA_sequence = get_SBT_allele_blastn_hits(assembly_file, neuA_db_file, assembly_name,out,args)
 
-    #Create a combination with all of the ST and allele numbers. 
-    allele_combinations = {"flaA":flaA_allele,"pilE":pilE_allele,"asd":asd_allele,"mip":mip_allele,"mompS":mompS2_allele,"proA":proA_allele,"neuA":neuA_allele}
-    annotated_allele_combinations = {"flaA":flaA_allele_annotated,"pilE":pilE_allele_annotated,"asd":asd_allele_annotated,"mip":mip_allele_annotated,"mompS":mompS2_allele_annotated,"proA":proA_allele_annotated,"neuA":neuA_allele_annotated}    
+    #Create a combination with all of the ST and allele numbers
+    allele_combinations = {"flaA":flaA_allele,"pilE":pilE_allele,"asd":asd_allele,"mip":mip_allele,"mompS":mompS2_allele,"proA":proA_allele,"neuA/neuAh":neuA_allele}
+    annotated_allele_combinations = {"flaA":flaA_allele_annotated,"pilE":pilE_allele_annotated,"asd":asd_allele_annotated,"mip":mip_allele_annotated,"mompS":mompS2_allele_annotated,"proA":proA_allele_annotated,"neuA/neuAh":neuA_allele_annotated}    
 
     #Assign ST
     ST_annotated = get_closest_ST(sts, allele_combinations, annotated_allele_combinations)
     #Append ST to output files and print to stdout
-    append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE_allele_annotated, asd_allele_annotated, mip_allele_annotated, mompS2_allele_annotated, proA_allele_annotated, neuA_allele_annotated, mompS1_allele_annotated, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile, mompS_not_identified)
+    append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE_allele_annotated, asd_allele_annotated, mip_allele_annotated, mompS2_allele_annotated, proA_allele_annotated, neuA_allele_annotated, mompS1_allele_annotated, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile, mompS_not_identified, args)
 
 def get_SBT_allele_blastn_hits(query, subject, assembly_name, out, args):
     """ Run blastn of contig against locus database to find closest matching allele """
@@ -451,7 +467,7 @@ def get_closest_ST(sts, allele_combinations, annotated_allele_combinations): #Ad
     best_allele_numbers_hits = []
     best_allele_numbers_annotated = []
     mismatch_loci, missing_loci = 0, 0
-    loci=["flaA","pilE","asd","mip","mompS","proA","neuA"] #make sure only mompS2 is used here, not mompS1
+    loci=["flaA","pilE","asd","mip","mompS","proA","neuA/neuAh"] #make sure only mompS2 is used here, not mompS1
 
     #For each locus, count if mismatch, and append the unannotated allele number to best_allele_numbers_hits
     for locus in loci:
@@ -489,7 +505,7 @@ def get_closest_ST(sts, allele_combinations, annotated_allele_combinations): #Ad
     return ST_annotated
 
 
-def append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE_allele_annotated, asd_allele_annotated, mip_allele_annotated, mompS2_allele_annotated, proA_allele_annotated, neuA_allele_annotated, mompS1_allele_annotated, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile, mompS_not_identified):
+def append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE_allele_annotated, asd_allele_annotated, mip_allele_annotated, mompS2_allele_annotated, proA_allele_annotated, neuA_allele_annotated, mompS1_allele_annotated, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile, mompS_not_identified, args):
     """ Once an iteration (assembly) is complete, append the results to the outfiles and write to stdout """
     ST_alleles["Strain"].append(assembly_name)
     ST_alleles["ST"].append(ST_annotated)
@@ -499,7 +515,7 @@ def append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE
     ST_alleles["mip"].append(mip_allele_annotated)	
     ST_alleles["mompS"].append(mompS2_allele_annotated)	
     ST_alleles["proA"].append(proA_allele_annotated)	
-    ST_alleles["neuA"].append(neuA_allele_annotated)
+    ST_alleles["neuA/neuAh"].append(neuA_allele_annotated)
 
     #Convert dictionary to dataframe    
     ST = pd.DataFrame.from_dict(ST_alleles, orient='index').T
@@ -508,19 +524,31 @@ def append_to_ST_report(assembly_name, ST_annotated, flaA_allele_annotated, pilE
     #Write to output file
     ST.to_csv(ST_outfile,index=False, sep = "\t")
 
-    mompS_alleles["Strain"].append(assembly_name)
-    mompS_alleles["mompS1"].append(mompS1_allele_annotated)
-    mompS_alleles["mompS2"].append(mompS2_allele_annotated)
 
-    #Convert dictionary to dataframe    
-    mompS = pd.DataFrame.from_dict(mompS_alleles, orient='index').T
-    #Write to output file
-    mompS.to_csv(mompS_outfile,index=False, sep = "\t")
-    
+    # Write mompS1/2 table only when not in amplicon mode and outfile is set
+    if not args.amplicon and mompS_outfile:
+        mompS_alleles["Strain"].append(assembly_name)
+        mompS_alleles["mompS1"].append(mompS1_allele_annotated)
+        mompS_alleles["mompS2"].append(mompS2_allele_annotated)
+        mompS = pd.DataFrame.from_dict(mompS_alleles, orient='index').T #Convert dictionary to dataframe  
+        mompS.to_csv(mompS_outfile, index=False, sep="\t") #Write to output file
+
     #Print results temp to outfile 
-    print(assembly_name + "\tST" + ST_annotated + "\t" + flaA_allele_annotated + "\t" + pilE_allele_annotated + "\t" + asd_allele_annotated + "\t" + mip_allele_annotated + "\t" + mompS2_allele_annotated + "\t" + proA_allele_annotated + "\t" + neuA_allele_annotated + "\t" + "\t" + "\t" + mompS1_allele_annotated)
-
-    if mompS_not_identified != []: 
+    #stdout line: omit the trailing mompS1 column in amplicon mode
+    if args.amplicon:
+        print(
+            f"{assembly_name}\tST{ST_annotated}\t{flaA_allele_annotated}\t{pilE_allele_annotated}\t"
+            f"{asd_allele_annotated}\t{mip_allele_annotated}\t{mompS2_allele_annotated}\t"
+            f"{proA_allele_annotated}\t{neuA_allele_annotated}"
+        )
+    else:
+        print(
+            f"{assembly_name}\tST{ST_annotated}\t{flaA_allele_annotated}\t{pilE_allele_annotated}\t"
+            f"{asd_allele_annotated}\t{mip_allele_annotated}\t{mompS2_allele_annotated}\t"
+            f"{proA_allele_annotated}\t{neuA_allele_annotated}\t\t\t{mompS1_allele_annotated}"
+        )
+   
+    if mompS_not_identified != []:
         print(mompS_not_identified)
 
     return ST, mompS_not_identified
@@ -690,14 +718,19 @@ def run_water_alignment(df, primer_1116R, out, args, assembly_name, iteration, s
     return mompS_copy
    
 
-def get_output_headers():
+def get_output_headers(args):
     """ Set up headers for outfiles and stdout """
-    ST_alleles = {"Strain":[],"ST":[],"flaA":[],"pilE":[],"asd":[],"mip":[],"mompS":[],"proA":[],"neuA":[]} 
-    mompS_alleles = {"Strain":[],"mompS1":[],"mompS2":[]} 
+    ST_alleles = {"Strain":[],"ST":[],"flaA":[],"pilE":[],"asd":[],"mip":[],"mompS":[],"proA":[],"neuA/neuAh":[]}
 
-    print("Strain\tST\tflaA\tpilE\tasd\tmip\tmompS\tproA\tneuA\t\t\tmompS1 (Not used in the SBT scheme)")
+    if args.amplicon:
+        print("Strain\tST\tflaA\tpilE\tasd\tmip\tmompS\tproA\tneuA/neuAh")
+        mompS_alleles = None
+    else:
+        print("Strain\tST\tflaA\tpilE\tasd\tmip\tmompS\tproA\tneuA/neuAh\t\t\tmompS1 (Not used in the SBT scheme)")
+        mompS_alleles = {"Strain":[],"mompS1":[],"mompS2":[]}
 
     return ST_alleles, mompS_alleles
+
 
 
 ####################################################################################################################################
@@ -720,7 +753,7 @@ def main():
 
 
     #Get mompS + SBT alleles + ST for each assemblies in a loop. 
-    ST_alleles, mompS_alleles = get_output_headers()
+    ST_alleles, mompS_alleles = get_output_headers(args)
     for assembly_input in sequence_list:
         assembly_file, assembly_name = check_assembly(assembly_input,out)
         get_SBT(assembly_file, mompS2_ref,mompS_db_file, primer_1116R, asd_db_file, flaA_db_file, mip_db_file, neuA_db_file, pilE_db_file, proA_db_file, out, assembly_name,sts, ST_alleles,ST_outfile, mompS_alleles, mompS_outfile,args)

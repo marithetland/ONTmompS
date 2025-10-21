@@ -25,7 +25,9 @@ mamba create -n ontmomps_env -c bioconda -c conda-forge pandas blast emboss biop
 ```
 
 ## Description 
-This tool was built as an _in silico_ approach to identify the Sequence Type (ST) of _Legionella pneumophila_ genomes from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns allele numbers and ST. We recommend using long-read or hybrid assemblies that have circular chromosomes when running this tool. It is not intended for short-read assemblies.
+This tool was built as an _in silico_ approach to identify the Sequence Type (ST) of _Legionella pneumophila_ genomes from long-read or hybrid assemblies. It first identifies the _mompS1_ and _mompS2_ alleles and then assigns allele numbers and ST. We recommend using long-read or hybrid assemblies that have circular chromosomes when running this tool. It is not intended for short-read assemblies. 
+
+Update (21 Oct 2025): The tool now supports an optional --amplicon mode, which treats the mompS locus as a single amplicon and skips _mompS1/mompS2_ separation. This is suitable for assemblies or datasets where only one mompS copy is expected (e.g. from PCR amplicons).
 
 **Background**
 
@@ -56,7 +58,7 @@ usage: ONTmomps.py [-h] [-v] -a ASSEMBLIES [ASSEMBLIES ...] [--db DB]
                    [--store_mompS_alleles] [--store_novel_alleles]
                    [--store_all_alleles] [--verbose] [-l LOG]
                    [--ST_outfile ST_OUTFILE] [--mompS_outfile MOMPS_OUTFILE]
-                   [-o OUTDIR]
+                   [-o OUTDIR] [--amplicon]
 
 In silico SBT of Legionella pneumophila from long-read or hybrid assemblies
 
@@ -82,6 +84,9 @@ Optional flags:
   --verbose             Log more details and keep intermediate files for
                         debugging.
   -l LOG, --log LOG     Write logging to specified file name instead of stdout
+  --amplicon            Treat mompS like standard SBT (single amplicon). Skip
+                        mompS1/2 separation and call the allele directly from
+                        the assembly.
 
 Output options:
   --ST_outfile ST_OUTFILE
