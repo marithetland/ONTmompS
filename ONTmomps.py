@@ -741,7 +741,7 @@ def main():
     start_time = time.time()
 
     set_up_logging(args)
-    logging.info('This is ONTmompS v2.0.0')
+    logging.info('This is ONTmompS v3.0.0')
     logging.info('Running command: {0}'.format(' '.join(sys.argv)))
     
     #Set up inputs/outputs
