@@ -27,7 +27,7 @@ import logging
 def parse_args():
     #Version 
     parser = ArgumentParser(description='In silico SBT of Legionella pneumophila from long-read or hybrid assemblies')
-    parser.add_argument('-v','--version', action='version', version='%(prog)s ' + 'v2.1.0')
+    parser.add_argument('-v','--version', action='version', version='%(prog)s ' + 'v3.0.0')
 
     #Argsgroups
     input_args = parser.add_argument_group('Input options (required)')
